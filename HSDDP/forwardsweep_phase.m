@@ -27,9 +27,9 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
         ineqInfo_k = Phase.ineq_constr_Info(x, u, y);
 
         % Modify lInfo if Reduced Barrier is active
-%         if options.ReB_active
-%             lInfo_k = update_lInfo_with_ReB(lInfo_k,ineqInfo_k, AL_ReB_params.delta, AL_ReB_params.eps_ReB);
-%         end
+        if options.ReB_active && Phase.termconstr_active
+            lInfo_k = update_lInfo_with_ReB(lInfo_k,ineqInfo_k, AL_ReB_params.delta, AL_ReB_params.eps_ReB);
+        end
 
         % Modify lInfo if smoothness penalty is active
 %         if options.smooth_active

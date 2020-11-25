@@ -6,7 +6,7 @@ function success = backwardsweep_phase(Phase, T, G_prime, H_prime, dV_prime, reg
 
     % impact-aware DDP step
     Px = Phase.resetmap_par(T.X(:,end));
-    [T.G(:,end), T.H(:,:,end)] = impact_aware_step(phiInfo, Px, G_prime, H_prime);
+    [T.G(:,end), T.H(:,:,end)] = impact_aware_step(T.phiInfo, Px, G_prime, H_prime);
 
     success = 1;
 
@@ -27,24 +27,24 @@ function success = backwardsweep_phase(Phase, T, G_prime, H_prime, dV_prime, reg
         Qux = T.lInfo(k).lux + Dk'*T.lInfo(k).lyy*Ck  + Bk'*Hk_next*Ak;
 
         % regularization
-        Qxx = Qxx + eye(Phase.xsize)*regularization;
-        Quu = Quu + eye(Phase.usize)*regularization;
+        Qxx = Qxx + eye(Phase.model.xsize)*regularization;
+        Quu = Quu + eye(Phase.model.usize)*regularization;
 
-        [~, p] = chol(Quu-eye(Phase.usize)*1e-9);
+        [~, p] = chol(Quu-eye(Phase.model.usize)*1e-9);
         if p ~= 0
             success = 0;
             break;
         end
 
         % Standard equations
-        Quu_inv     = Sym(eye(Phase.usize)/Quu);
-        T.du(:,k)   = -Quu_inv*Qu;
+        Quu_inv     = Sym(eye(Phase.model.usize)/Quu);
+        T.dU(:,k)   = -Quu_inv*Qu;
         T.K(:,:,k)  = -Quu_inv*Qux;
         T.G(:,k)    = Qx  - (Qux')*(Quu_inv* Qu );
         T.H(:,:,k)  = Qxx - (Qux')*(Quu_inv* Qux);
         T.dV        = T.dV - Qu'*(Quu\Qu);
 
-        if any(isnan(T.du(:,k))) || any(isnan(T.G(:,k)))
+        if any(isnan(T.dU(:,k))) || any(isnan(T.G(:,k)))
             success = 0;
             error('error: du or Vx has nan at k = %d', k);
 %             break;

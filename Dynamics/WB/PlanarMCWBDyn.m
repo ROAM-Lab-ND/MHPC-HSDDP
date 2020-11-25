@@ -176,22 +176,22 @@ classdef PlanarMCWBDyn < BaseDyn
                                     
             [Jx, ~] = m.getContactJacobianPar(x, next_mode);
             
-            % KKT
-            if isempty(J)
-                Prod_J_qdpre = [];
+            % KKT and KKT partials
+            qdpre_x = [zeros(7), eye(7)];           
+            if ~isempty(J)
+                K = [H, J';-J, zeros(size(J,1),size(J,1))];
+                b = [H*qdpre; m.e*J*qdpre];
+                Kx = [Hx,  permute(Jx,[2,1,3]);
+                      -Jx, zeros(size(Jx,1),size(Jx,1),m.xsize)];            
+                bx = [getMatVecProdPar(H, Hx, qdpre, qdpre_x);
+                      getMatVecProdPar(m.e*J,m.e*Jx,qdpre,qdpre_x)];
             else
-                Prod_J_qdpre = m.e*J*qdpre;
+                K = H;
+                b = H*qdpre;
+                Kx = Hx;            
+                bx = getMatVecProdPar(H, Hx, qdpre, qdpre_x);
             end
-            K = [H, J';-J, zeros(size(J,1),size(J,1))];
-            b = [H*qdpre; Prod_J_qdpre];
-            
-            % KKT partials
-            qdpre_x = [zeros(7), eye(7)];
-            Kx = [Hx,  permute(Jx,[2,1,3]);
-                  -Jx, zeros(size(Jx,1),size(Jx,1),m.xsize)];            
-            bx = [ getMatVecProdPar(H, Hx, qdpre, qdpre_x);
-                   getMatVecProdPar(m.e*J,m.e*Jx,qdpre,qdpre_x)];               
-            
+                                                                 
             [qdpost_x, ~] = getFDPar(K,Kx,b,bx);
             
             % State-space impact dyanmics partials

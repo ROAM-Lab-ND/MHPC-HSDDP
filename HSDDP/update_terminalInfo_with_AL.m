@@ -9,7 +9,7 @@ G = zeros(xsize, 1);
 H = zeros(xsize, xsize);
 
 % Gradient of AL term
-G = (sigma/2)^2*2*hx*h + hx*lambda;
+G = (sigma/2)^2*2*(h*hx)' + (lambda*hx)';
 
 % Hessian of AL term
 for i = 1:length(h)
@@ -17,7 +17,7 @@ for i = 1:length(h)
     hix = hx(:,i);
     hixx = hxx(:,:,i);
     lambdai = lambda(i);
-    H = H + (sigma/2)^2*2*((hix*hix') + hi*hixx) + lambdai*hixx;
+    H = H + (sigma/2)^2*2*((hix'*hix) + hi*hixx) + lambdai*hixx;
 end
 
 % Update terminal cost
