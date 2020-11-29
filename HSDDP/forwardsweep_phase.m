@@ -14,7 +14,7 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
         else
             u       = ubar;
         end
-        
+        assert(~any(isnan(u)), 'u cannot be nan!');
         [x_next, y] = Phase.dynamics(x, u);
 
         % Running cost info (lInfo_k structure)

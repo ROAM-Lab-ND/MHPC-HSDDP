@@ -1,4 +1,4 @@
-function WBDynamics_support()
+function WBDynamics_support(quadruped)
 % This function converts symbolic expression to function handles and only
 % executes once.
 qsize = 7;
@@ -11,13 +11,13 @@ qd  = sym('qd', [qsize, 1]);
 x   = [q;qd];
 u   = sym('u', [usize, 1]); 
 
-[mc, ~] = build2DminiCheetah();
+% [mc, ~] = build2DminiCheetah();
 
 % Jacobian and Jacobian derivative
 p = sym('p', 2);
 
 for linkidx = 1:5
-    contactPos = getPosition(q,linkidx, p);
+    contactPos = quadruped.getPosition(q,linkidx, p);
     J = jacobian(contactPos, q);
     Jd = reshape(jacobian(reshape(J, [numel(J),1]),q)*qd, 2, qsize);
     % J and Jd partial w.r.t. x, u
@@ -29,12 +29,12 @@ for linkidx = 1:5
     matlabFunction(Jx, Jdx, 'file',JPFilename,'vars',{x,p});
 end
 
-% Dynamics partials
-[H, C] = HandC(mc,q,qd);
-Hx = MatrixPartial(H, x);
-Cx = jacobian(C, x);
-
-matlabFunction(Hx, Cx, 'file','Dynamics/WB/FreeDynamics_par','vars',{x});
-
-fprintf('WBDynamics support functions generated successfully! \n');
+% % Dynamics partials
+% [H, C] = HandC(quadruped.model,q,qd);
+% Hx = MatrixPartial(H, x);
+% Cx = jacobian(C, x);
+% 
+% matlabFunction(Hx, Cx, 'file','Dynamics/WB/FreeDynamics_par','vars',{x});
+% 
+% fprintf('WBDynamics support functions generated successfully! \n');
 end

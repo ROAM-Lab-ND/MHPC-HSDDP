@@ -2,12 +2,16 @@
 clear all
 clc
 addpath(genpath(pwd));
-FIRSTRUN = 0;
+dt = 0.001;
+FIRSTRUN = 1;
+
+WBMC2D = PlanarQuadruped(dt);
+build2DminiCheetah(WBMC2D);
 
 if FIRSTRUN
-    WBDynamics_support();
-    FBDynamimcs_support();
-    terminal_constr_support();
+    WBDynamics_support(WBMC2D);
+%     FBDynamimcs_support();
+%     terminal_constr_support();
 end
 
 %% Define a bounding gait

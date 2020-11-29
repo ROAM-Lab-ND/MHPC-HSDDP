@@ -57,13 +57,13 @@ classdef HybridSystemsDDP < handle
             eps = 1;
             Vprev = DDP.V;
             
-            while eps > 1e-10
-                DDP.forwardsweep(eps, AL_ReB_params, options);
-                
+            while eps > 1e-10                                
                  if options.Debug
                     fprintf('\t eps=%.3e \t cost change=%.3e \t min=%.3e\n',eps, DDP.V-Vprev, options.gamma* eps*(1-eps/2)*DDP.dV );
                  end
                 
+                 DDP.forwardsweep(eps, AL_ReB_params, options);
+                 
                  % check if V is small enough to accept the step
                  if DDP.V < Vprev + options.gamma*eps*(1-eps/2)*DDP.dV
                      % if so, break

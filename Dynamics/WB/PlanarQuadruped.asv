@@ -10,7 +10,7 @@ classdef PlanarQuadruped < BaseDyn
         e = 0;  % elastic coefficient        
     end
     
-    properties % link geometry and inertia parameters
+    properties
         bodyMass
         bodyLength
         bodyHeight
@@ -20,16 +20,13 @@ classdef PlanarQuadruped < BaseDyn
         hipLinkLength
         hipLinkMass
         hipLinkCoM
-        hipRotInertia
+        hipLinkRotInertia
         hipLoc
         kneeLoc
         kneeLinkLength
         kneeLinkMass
         kneeLinkCoM
-        kneeRotInertia        
-    end
-    
-    properties % robot model (spatial v2)
+        kneeLinkRotInertia
         model
     end
             
@@ -79,7 +76,6 @@ classdef PlanarQuadruped < BaseDyn
             robot.I{nb} = mcI(Quad.bodyMass, Quad.bodyCoM, Quad.bodyRotInertia);
             
             nbase = nb; % floating base index for attaching two children links (hip links)
-            NLEGS = 2;
             
             for i = 1:NLEGS
                 %% Hip link
@@ -87,14 +83,14 @@ classdef PlanarQuadruped < BaseDyn
                 robot.parent(nb) = nbase; % parent of the hip link is base
                 robot.Xtree{nb} = plux(ry(0), Quad.hipLoc{i});  % translation (half the body length)
                 robot.jtype{nb} = 'Ry';
-                robot.I{nb} = mcI(Quad.hipLinkMass, Quad.hipLinkCoM, Quad.hipRotInertia);
+                robot.I{nb} = mcI(Quad.hipLinkMass, Quad.hipLinkCoM, Quad.hipLinkRotInertia);
                 
                 %% Knee link
                 nb = nb + 1;
                 robot.parent(nb) = nb - 1; % parent of the knee link is hip link
                 robot.Xtree{nb} = plux( ry(0), Quad.kneeLoc);    % translation (length of hip link)
                 robot.jtype{nb} = 'Ry';
-                robot.I{nb} = mcI(Quad.kneeLinkMass, Quad.kneeLinkCoM, Quad.kneeRotInertia);
+                robot.I{nb} = mcI(Quad.kneeLinkMass, Quad.kneeLinkCoM, Quad.kneeLinkRotInertia);
             end
             Quad.model = robot;
         end                      
@@ -279,69 +275,6 @@ classdef PlanarQuadruped < BaseDyn
     end
       
     methods
-        function T          = getKinematics(Quad,q)
-            % This function computes the homogeneous transformation of each joint-fixed
-            % frame w.r.t. Inertia coordinate system (IC)
-            % Link index convention: body 1, f hip 2, f knee 3, b hip 4, b knee 5
-            % q(1):x  q(2):y  q(3):roty
-            % q(4):theta1 hip  q(5):theta2 knee (front leg)
-            % q(6):theta1 hip  q(7):theta2 knee (back leg)                       
-            
-            %% kinematics
-            % preallocate to save memory
-            T  =  repmat({eye(4)}, [5, 1]);
-            
-            % body Pos and Orientation w.r.t IC
-            T{1}    =  Trans([q(1), 0, q(2)])*RotY(q(3));
-            
-            % body frame to front hip frame
-            T12     =  Trans(Quad.hipLoc{1})*RotY(q(4));
-            
-            % front hip frame to front knee frame
-            T23     =  Trans(Quad.kneeLoc)*RotY(q(5));
-            
-            % body frame to back hip frame
-            T14     =  Trans(Quad.hipLoc{2})*RotY(q(6));
-            
-            % back hip frame to back knee frame
-            T45     =  Trans(Quad.kneeLoc)*RotY(q(7));
-            
-            % front hip frame w.r.t IC
-            T{2}    =  T{1}*T12;
-            
-            % front knee frame w.r.t IC
-            T{3}    =  T{2}*T23;
-            
-            % back hip frame w.r.t IC
-            T{4}    = T{1}*T14;
-            
-            % back knee frame w.r.t IC
-            T{5}    = T{4}*T45;
-        end
-        
-        function ICSPos     = getPosition(Quad,q,linkidx, contactLoc)
-            % This function gets the position of a contact point w.r.t. ICS.
-            % ContactLoc is defined in local frame
-            % Link index convention: body 1, f hip 2, f knee 3, b hip 4, b knee 5,
-            
-            % % if linkidx = 6 (7), get front(back) foot position
-            % if nargin<3 && any(linkidx == [6, 7])
-            %     contactLoc = mc2D.kneeLoc;
-            %     if linkidx == 6
-            %         linkidx = 3;
-            %     elseif linkidx == 7
-            %         linkidx = 5;
-            %     end
-            % end
-            
-            T  = Quad.getKinematics(q);
-            contactLoc_aug = [contactLoc(1), 0, contactLoc(2), 1]';
-            ICSPos = T{linkidx}*contactLoc_aug;
-            
-            % remove y component and homogeneuous component
-            ICSPos([2,4],:) = [];
-        end
-        
         function [J,Jd]     = getJacobian(Quad, x, linkidx, contactLoc)
             % This function computes Jacobian and Jacobian Derivative for
             % contact point on link linkidx.
@@ -360,21 +293,10 @@ classdef PlanarQuadruped < BaseDyn
                 case 5
                     [J,Jd] = Link5Jacobian(x, contactLoc);
             end
-        end       
+        end
         
-        function [Jx,Jdx]   = getJacobianPar(Quad,x,linkidx,contactLoc)
-            switch linkidx
-                case 1
-                    [Jx,Jdx] = Link1Jacobian_par(x, contactLoc);
-                case 2
-                    [Jx,Jdx] = Link2Jacobian_par(x, contactLoc);
-                case 3
-                    [Jx,Jdx] = Link3Jacobian_par(x, contactLoc);
-                case 4
-                    [Jx,Jdx] = Link4Jacobian_par(x, contactLoc);
-                case 5
-                    [Jx,Jdx] = Link5Jacobian_par(x, contactLoc);
-            end
+        
+        function [Jx,Jdx]   = getJacobianPar(Quad,x,linkidx,loc)
         end
         
         function [J,Jd]     = getFootJacobian(Quad, x, mode)

@@ -30,7 +30,7 @@ classdef PlanarMCWBDyn < BaseDyn
             [H, C] = HandC(m.mc, q, qd);                        
             
             % Get contact jacobians
-            [J,Jd] = m.getContactJacobian(x, mode);
+            [J,Jd] = m.getFootJacobian(x, mode);
             
             % assemble KKT matrix
             if isempty(Jd)
@@ -73,7 +73,7 @@ classdef PlanarMCWBDyn < BaseDyn
             [H, ~] = HandC(m.mc, qpre, qdpre);
             
             % Get contact Jacobians
-            [J, ~] = m.getContactJacobian(x, next_mode);
+            [J, ~] = m.getFootJacobian(x, next_mode);
             
             % Assemble impulse KKT matrix
             if isempty(J)
@@ -116,11 +116,11 @@ classdef PlanarMCWBDyn < BaseDyn
             
             [H,  C] = HandC(m.mc,q,qd);
             
-            [J,  Jd] = m.getContactJacobian(x, mode);
+            [J,  Jd] = m.getFootJacobian(x, mode);
             
             [Hx, Cx] = FreeDynamics_par(x);
                                     
-            [Jx, Jdx] = m.getContactJacobianPar(x, mode);                                                         
+            [Jx, Jdx] = m.getFootJacobianPar(x, mode);                                                         
             
             % KKT and KKT partials
             qdx = [zeros(7), eye(7)];
@@ -170,11 +170,11 @@ classdef PlanarMCWBDyn < BaseDyn
             
             [H,  ~] = HandC(m.mc, qpre, qdpre);
             
-            [J,  ~] = m.getContactJacobian(x, next_mode);
+            [J,  ~] = m.getFootJacobian(x, next_mode);
             
             [Hx, ~] = FreeDynamics_par(x);
                                     
-            [Jx, ~] = m.getContactJacobianPar(x, next_mode);
+            [Jx, ~] = m.getFootJacobianPar(x, next_mode);
             
             % KKT and KKT partials
             qdpre_x = [zeros(7), eye(7)];           
@@ -200,20 +200,21 @@ classdef PlanarMCWBDyn < BaseDyn
     end
       
     methods
-        function [J,Jd]     = getContactJacobian(m, x, mode)
+        function [J,Jd]     = getFootJacobian(m, x, mode)
             % Get contact jacobian and its partial according to mode spec
             J = []; Jd = [];
             linkidx = []; contactLoc = [];            
             switch mode
                 case 1
-                    linkidx = 5; contactLoc = m.mcParam.kneeLoc;
+                    linkidx = 5; contactLoc = [0,-m.mcParam.kneeLinkLength]';
                 case 3
-                    linkidx = 3; contactLoc = m.mcParam.kneeLoc; % kneeLoc column vec                
+                    linkidx = 3; contactLoc = [0,-m.mcParam.kneeLinkLength]'; % kneeLoc column vec                
                 case {2,4}
                     linkidx = []; contactLoc = [];
                 case 5
                     linkidx = [3, 5];
-                    contactLoc = [m.mcParam.kneeLoc, m.mcParam.kneeLoc];
+                    contactLoc = [0,-m.mcParam.kneeLinkLength;
+                                  0,-m.mcParam.kneeLinkLength]';
             end
             
             for cidx = 1:length(linkidx)
@@ -223,7 +224,7 @@ classdef PlanarMCWBDyn < BaseDyn
             end
         end
         
-        function [Jx, Jdx]  = getContactJacobianPar(m, x, mode)
+        function [Jx, Jdx]  = getFootJacobianPar(m, x, mode)
             Jx = []; Jdx = [];
             switch mode
                 case 1
