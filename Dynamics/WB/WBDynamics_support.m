@@ -29,12 +29,12 @@ for linkidx = 1:5
     matlabFunction(Jx, Jdx, 'file',JPFilename,'vars',{x,p});
 end
 
-% % Dynamics partials
-% [H, C] = HandC(quadruped.model,q,qd);
-% Hx = MatrixPartial(H, x);
-% Cx = jacobian(C, x);
-% 
-% matlabFunction(Hx, Cx, 'file','Dynamics/WB/FreeDynamics_par','vars',{x});
-% 
-% fprintf('WBDynamics support functions generated successfully! \n');
+% Dynamics partials
+[H, C] = HandC(quadruped.model,q,qd);
+Hx = MatrixPartial(H, x);
+Cx = jacobian(C, x);
+
+matlabFunction(Hx, Cx, 'file','Dynamics/WB/FreeDynamics_par','vars',{x});
+
+fprintf('WBDynamics support functions generated successfully! \n');
 end

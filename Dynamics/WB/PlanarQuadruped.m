@@ -116,8 +116,8 @@ classdef PlanarQuadruped < BaseDyn
                 K = H;
                 b = Quad.S*u - C;
             else
-                K = [H, J';-J, zeros(size(J,1),size(J,1))];
-                b = [Quad.S*u - C; Jd*qd];
+                K = [H, -J';J, zeros(size(J,1),size(J,1))];
+                b = [Quad.S*u - C; -Jd*qd];
             end
                                     
             % KKT inverse
@@ -130,6 +130,7 @@ classdef PlanarQuadruped < BaseDyn
             x_next = x + fcont*Quad.dt;
             
             % output
+            y = zeros(4,1);
             if length(f_KKT) > 7
                 ycontact = f_KKT(8:end,1);
             end
@@ -142,12 +143,13 @@ classdef PlanarQuadruped < BaseDyn
                     y = [ycontact; zeros(2,1)];                                
                 case 5 % double stance
                     y = ycontact;
-            end            
+            end  
         end
         
         function [x_next, y] = resetmap(Quad,x,mode,next_mode)
             qpre = x(1:7,1);        % pre-impact joint angle
             qdpre = x(8:end,1);     % pre-impact joint vel
+            qpost = qpre;
             
             [H, ~] = HandC(Quad.model, qpre, qdpre);
             
@@ -159,8 +161,8 @@ classdef PlanarQuadruped < BaseDyn
                 K = H;
                 b = H*qdpre;
             else
-                K = [H, J';-J, zeros(size(J,1),size(J,1))];
-                b = [H*qdpre;  Quad.e*J*qdpre];
+                K = [H, -J';J, zeros(size(J,1),size(J,1))];
+                b = [H*qdpre;  -Quad.e*J*qdpre];
             end            
             
             % KKT inverse
@@ -168,12 +170,13 @@ classdef PlanarQuadruped < BaseDyn
             
             % Post state
             qdpost = P_KKT(1:7, 1);
-            x_next = [qpre; qdpost];
+            x_next = [qpost; qdpost];
             
             % Output
             if length(P_KKT) > 7
                 impulse = P_KKT(8:end,1);
             end
+            y = zeros(4,1);
             switch next_mode
                 case 1 % next mode is BS
                     y = [zeros(2,1); impulse];
@@ -184,7 +187,7 @@ classdef PlanarQuadruped < BaseDyn
                     % optimization algorithm. An accurate way to do this is
                     % to use the smooth dynamics. Eq(11) in HSDDP paper.
                     y = zeros(4, 1);
-            end            
+            end  
         end
     end
             
@@ -210,14 +213,14 @@ classdef PlanarQuadruped < BaseDyn
                 bx = -Cx;
                 bu = Quad.S*eye(Quad.usize);
             else
-                K = [H, J';-J, zeros(size(J,1),size(J,1))];
-                b = [Quad.S*u - C; Jd*qd];
-                Kx = [Hx,  permute(Jx,[2,1,3]);
-                    -Jx, zeros(size(Jx,1),size(Jx,1),Quad.xsize)];
+                K = [H, -J';J, zeros(size(J,1),size(J,1))];
+                b = [Quad.S*u - C; -Jd*qd];
+                Kx = [Hx,  -permute(Jx,[2,1,3]);
+                      Jx, zeros(size(Jx,1),size(Jx,1),Quad.xsize)];
                 bx = [ -Cx;
-                        getMatVecProdPar(Jd,Jdx,qd,qdx)];
-                bu = [Quad.S*eye(Quad.usize)
-                        zeros(size(Jd,1), Quad.usize)];
+                       -getMatVecProdPar(Jd,Jdx,qd,qdx)];
+                bu = [ Quad.S*eye(Quad.usize)
+                       zeros(size(Jd,1), Quad.usize)];
             end
             
             
@@ -256,14 +259,15 @@ classdef PlanarQuadruped < BaseDyn
             [Jx, ~] = Quad.getFootJacobianPar(x, next_mode);
             
             % KKT and KKT partials
-            qdpre_x = [zeros(7), eye(7)];           
+            qpost_x = [eye(7), zeros(7)];
+            qdpre_x = [zeros(7), eye(7)];
             if ~isempty(J)
-                K = [H, J';-J, zeros(size(J,1),size(J,1))];
-                b = [H*qdpre; Quad.e*J*qdpre];
-                Kx = [Hx,  permute(Jx,[2,1,3]);
-                      -Jx, zeros(size(Jx,1),size(Jx,1),Quad.xsize)];            
+                K = [H, -J';J, zeros(size(J,1),size(J,1))];
+                b = [H*qdpre; -Quad.e*J*qdpre];
+                Kx = [Hx,  -permute(Jx,[2,1,3]);
+                      Jx, zeros(size(Jx,1),size(Jx,1),Quad.xsize)];            
                 bx = [getMatVecProdPar(H, Hx, qdpre, qdpre_x);
-                      getMatVecProdPar(Quad.e*J,Quad.e*Jx,qdpre,qdpre_x)];
+                      -getMatVecProdPar(Quad.e*J,Quad.e*Jx,qdpre,qdpre_x)];
             else
                 K = H;
                 b = H*qdpre;
@@ -274,7 +278,7 @@ classdef PlanarQuadruped < BaseDyn
             [qdpost_x, ~] = getFDPar(K,Kx,b,bx);
             
             % State-space impact dyanmics partials
-            Px = [qdpre_x; qdpost_x];
+            Px = [qpost_x; qdpost_x];
         end
     end
       
@@ -405,14 +409,15 @@ classdef PlanarQuadruped < BaseDyn
             Jx = []; Jdx = [];
             switch mode
                 case 1
-                    linkidx = 5; contactLoc = Quad.kneeLoc;
+                    linkidx = 5; contactLoc = [0,-Quad.kneeLinkLength]';
                 case 3
-                    linkidx = 3; contactLoc = Quad.kneeLoc; % kneeLoc column vec                
+                    linkidx = 3; contactLoc = [0,-Quad.kneeLinkLength]'; % kneeLoc column vec                
                 case {2,4}
                     linkidx = []; contactLoc = [];
                 case 5
                     linkidx = [3, 5];
-                    contactLoc = [Quad.kneeLoc, Quad.kneeLoc];
+                    contactLoc = [0,-Quad.kneeLinkLength;
+                                  0,-Quad.kneeLinkLength]';
             end
             
             for cidx = 1:length(linkidx)

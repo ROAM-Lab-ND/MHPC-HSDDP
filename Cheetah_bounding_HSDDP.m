@@ -3,7 +3,7 @@ clear all
 clc
 addpath(genpath(pwd));
 dt = 0.001;
-FIRSTRUN = 1;
+FIRSTRUN = 0;
 
 WBMC2D = PlanarQuadruped(dt);
 build2DminiCheetah(WBMC2D);
