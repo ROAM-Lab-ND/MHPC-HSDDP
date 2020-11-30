@@ -5,8 +5,13 @@ addpath(genpath(pwd));
 dt = 0.001;
 FIRSTRUN = 0;
 
+% build whole-body model for planar mc
 WBMC2D = PlanarQuadruped(dt);
 build2DminiCheetah(WBMC2D);
+
+% build floating-base model for planar mc
+FBMC2D = PlanarFloatingBase(dt);
+build2DminiCheetahFB(FBMC2D);
 
 if FIRSTRUN
     WBDynamics_support(WBMC2D);

@@ -1,10 +1,6 @@
-function [WBPhases, FBPhases] = ConstructParentPhases(params)
+function [WBPhases, FBPhases] = ConstructParentPhases(WBMC, FBMC, params)
 % This function creates four base phases for each model
 % 1-> BS 2->FL1 3->FS 4->FL2
-
-% Create Whole-body (WB) and Floating-base(FB) MC models
-WBMC = PlanarMCWBDyn(params.dt);
-FBMC = PlanarMCFBDyn(params.dt);
 
 % Initialize WBPhases and FBPhases
 for mode = 1:4
