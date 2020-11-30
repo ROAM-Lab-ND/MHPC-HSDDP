@@ -16,7 +16,7 @@ classdef PlanarFloatingBase < BaseDyn
     
     methods
         % constructor
-        function m = PlanarMCFBDyn(dt)           
+        function m = PlanarFloatingBase(dt)           
             m.dt = dt;                       
         end
     end
