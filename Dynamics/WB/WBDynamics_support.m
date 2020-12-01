@@ -20,7 +20,7 @@ for linkidx = 1:5
     contactPos = quadruped.getPosition(q,linkidx, p);
     J = jacobian(contactPos, q);
     Jd = reshape(jacobian(reshape(J, [numel(J),1]),q)*qd, 2, qsize);
-    % J and Jd partial w.r.t. x, u
+    % J and Jd partial w.r.t. x
     Jx  = MatrixPartial(J, x);
     Jdx = MatrixPartial(Jd, x);
     JFilename = sprintf('Kinematics/Link%dJacobian', linkidx);

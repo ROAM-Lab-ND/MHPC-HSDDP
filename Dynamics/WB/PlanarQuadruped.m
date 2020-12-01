@@ -327,17 +327,7 @@ classdef PlanarQuadruped < BaseDyn
         function ICSPos     = getPosition(Quad,q,linkidx, contactLoc)
             % This function gets the position of a contact point w.r.t. ICS.
             % ContactLoc is defined in local frame
-            % Link index convention: body 1, f hip 2, f knee 3, b hip 4, b knee 5,
-            
-            % % if linkidx = 6 (7), get front(back) foot position
-            % if nargin<3 && any(linkidx == [6, 7])
-            %     contactLoc = mc2D.kneeLoc;
-            %     if linkidx == 6
-            %         linkidx = 3;
-            %     elseif linkidx == 7
-            %         linkidx = 5;
-            %     end
-            % end
+            % Link index convention: body 1, f hip 2, f knee 3, b hip 4, b knee 5,                       
             
             T  = Quad.getKinematics(q);
             contactLoc_aug = [contactLoc(1), 0, contactLoc(2), 1]';
@@ -400,7 +390,7 @@ classdef PlanarQuadruped < BaseDyn
             end
             
             for cidx = 1:length(linkidx)
-                [J_cidx, Jd_cidx] = getJacobian(x, linkidx(cidx), contactLoc(:,cidx));
+                [J_cidx, Jd_cidx] = Quad.getJacobian(x, linkidx(cidx), contactLoc(:,cidx));
                 J   = [J; J_cidx]; 
                 Jd  = [Jd; Jd_cidx];
             end
@@ -422,7 +412,7 @@ classdef PlanarQuadruped < BaseDyn
             end
             
             for cidx = 1:length(linkidx)
-                [Jx_cidx, Jdx_cidx] = getJacobianPar(x, linkidx(cidx), contactLoc(:,cidx));
+                [Jx_cidx, Jdx_cidx] = Quad.getJacobianPar(x, linkidx(cidx), contactLoc(:,cidx));
                 Jx  = [Jx; Jx_cidx]; 
                 Jdx  = [Jdx; Jdx_cidx];
             end

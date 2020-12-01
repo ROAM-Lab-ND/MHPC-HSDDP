@@ -46,6 +46,9 @@ options.DDP_thresh       = 0.01;       % Inner loop opt convergence threshold
 options.AL_thresh        = 1e-3;       % Outer loop opt convergence threshold
 options.AL_active        = 1;
 options.ReB_active       = 1;
+options.jointLim_active  = 1;
+options.torqueLim_active = 1;
+options.nonnegGT
 options.feedback_active  = 1;
 options.Debug            = 1;
 
@@ -53,7 +56,7 @@ options.Debug            = 1;
 % Construct basic unique phases
 [WBPhases, FBPhases] = ConstructParentPhases(WBMC2D, FBMC2D,problem_data);
 
-% Preallocate HSDDP phases
+% % Preallocate HSDDP phases
 Phases = repmat(BasePhase(), [problem_data.n_Phases, 1]);
 
 % Allocate WB (whole-body) phases
@@ -74,11 +77,11 @@ end
 %% Preallocate memory for trajectories of each phase
 HybridTrajectory = repmat(PhaseTrajectory(),[problem_data.n_Phases, 1]);
 
-for idx = problem_data.n_Phases
-    HybridTrajectory(idx).Initialization(Phases(idx).model.xsize,...
-                                         Phases(idx).model.usize,...
-                                         Phases(idx).model.ysize,...
-                                         problem_data.N_horizons(idx));
+for idx = 1:problem_data.n_Phases
+    HybridTrajectory(idx) = PhaseTrajectory(Phases(idx).model.xsize,...
+                                            Phases(idx).model.usize,...
+                                            Phases(idx).model.ysize,...
+                                            problem_data.N_horizons(idx));
 end
 
 %% Run HSDDP
@@ -90,3 +93,9 @@ x0 = [q0;qd0];
 HSDDP = HybridSystemsDDP(Phases, HybridTrajectory);
 
 HSDDP.set_initial_condition(x0);
+
+AL_ReB_params = [Phases.AL_ReB_params];
+
+HSDDP.forwardsweep(0, AL_ReB_params, options);
+
+X = [HybridTrajectory.X];

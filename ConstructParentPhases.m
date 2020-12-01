@@ -131,23 +131,27 @@ end
 WB_AL_ReB_params = repmat(struct('sigma',[],...
                                  'lambda',[],...
                                  'delta',[],...
-                                 'eps_ReB',1,...
+                                 'eps_ReB',[],...
                                  'eps_smooth',1),[4,1]);
 % Stance phases do not have terminal constraint. AL params are empty                          
 % Ineq cq, cu, and cy
-WB_AL_ReB_params(1).delta = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.5*ones(1,3)];
-WB_AL_ReB_params(3).delta = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.5*ones(1,3)];
+WB_AL_ReB_params(1).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
+WB_AL_ReB_params(1).eps_ReB = [1e-5*ones(1,2*4),  0*ones(1,2*4), 1e-5*ones(1,3)];
+
+WB_AL_ReB_params(3).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
+WB_AL_ReB_params(3).eps_ReB = [1e-5*ones(1,2*4),  0*ones(1,2*4), 1e-5*ones(1,3)];
 
 % Flight phase needs terminal constraint at TD
-WB_AL_ReB_params(2).sigma = 5;
-WB_AL_ReB_params(2).lambda = 0;
-% Ineq cq, cu, and cy
-WB_AL_ReB_params(2).delta = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.5*ones(1,3)];
+WB_AL_ReB_params(2).sigma   = 5;
+WB_AL_ReB_params(2).lambda  = 0;
+WB_AL_ReB_params(2).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
+WB_AL_ReB_params(2).eps_ReB = [1e-5*ones(1,2*4),0*ones(1,2*4)];
 
-WB_AL_ReB_params(4).sigma = 5;
-WB_AL_ReB_params(4).lambda = 0;
-% Ineq cq, cu, and cy
-WB_AL_ReB_params(4).delta = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.5*ones(1,3)];
+WB_AL_ReB_params(4).sigma   = 5;
+WB_AL_ReB_params(4).lambda  = 0;
+WB_AL_ReB_params(4).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
+WB_AL_ReB_params(4).eps_ReB = [1e-5*ones(1,2*4),0*ones(1,2*4)];
+
 
 for mode = 1:4
     WBPhases(mode).set_AL_ReB_params(WB_AL_ReB_params(mode));

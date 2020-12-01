@@ -1,6 +1,6 @@
 function lInfo = update_lInfo_with_ReB(lInfo, ineq_Info, delta, eps)
 % Copy ineq constraint infrom from ineq_Info
-c = ineq_Info.c; 
+c  = ineq_Info.c; 
 cx = ineq_Info.cx; 
 cu = ineq_Info.cu; 
 cy = ineq_Info.cy;
@@ -8,7 +8,7 @@ cy = ineq_Info.cy;
 
 [B, Bc, Bcc]   = ReducedBarrier(c, delta); % Compute ReB and its partials for ineq
 
-lInfo.l = lInfo.l + eps*sum(B); % Update running cost (same eps for all ineqs)
+lInfo.l = lInfo.l + eps*B; % Update running cost (same eps for all ineqs)
 
 xsize = length(lInfo.lx);
 usize = length(lInfo.lu);
@@ -35,11 +35,21 @@ end
 
 % Update lInfo
 % Assumes the same weighting param eps is used for all ineqs
-lInfo.lx = lInfo.lx + eps * sum(Bx,2);
-lInfo.lu = lInfo.lu + eps * sum(Bu,2);
-lInfo.ly = lInfo.ly + eps * sum(By,2);
+% eps row vector of weighting params
+lInfo.lx = lInfo.lx + Bx*eps';
+lInfo.lu = lInfo.lu + Bu*eps';
+lInfo.ly = lInfo.ly + By*eps';
 
-lInfo.luu = lInfo.luu + eps * sum(Buu,3);
-lInfo.lxx = lInfo.lxx + eps * sum(Bxx,3);
-lInfo.lyy = lInfo.lyy + eps * sum(Byy,3);
+Buu_wsum = zeros(usize, usize);
+Bxx_wsum = zeros(xsize, xsize);
+Byy_wsum = zeros(ysize, ysize);
+
+for cidx = 1:csize
+    Buu_wsum = Buu_wsum + eps(cidx)*Buu(:,:,cidx);
+    Bxx_wsum = Bxx_wsum + eps(cidx)*Bxx(:,:,cidx);
+    Byy_wsum = Byy_wsum + eps(cidx)*Byy(:,:,cidx);
+end
+lInfo.luu = lInfo.luu + Buu_wsum;
+lInfo.lxx = lInfo.lxx + Bxx_wsum;
+lInfo.lyy = lInfo.lyy + Byy_wsum;
 end

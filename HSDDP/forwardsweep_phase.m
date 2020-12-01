@@ -27,7 +27,7 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
         ineqInfo_k = Phase.ineq_constr_Info(x, u, y);
 
         % Modify lInfo if Reduced Barrier is active
-        if options.ReB_active && Phase.termconstr_active
+        if options.ReB_active && Phase.ineqconstr_active
             lInfo_k = update_lInfo_with_ReB(lInfo_k,ineqInfo_k, AL_ReB_params.delta, AL_ReB_params.eps_ReB);
         end
 
@@ -44,10 +44,11 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
         T.dynInfo(k)    = dynInfo_k;
         T.V             = T.V + lInfo_k.l;
     end
+    
     % Compute terminal cost info
     phiInfo = Phase.terminal_cost_Info(T.X(:,end));
     
-    if Phase.termconstr_active
+    if options.AL_active && Phase.termconstr_active
         % Get terminal constraint violation
         [h, hx, hxx] = Phase.terminal_constr_Info(T.X(:,end));
         
@@ -59,4 +60,5 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
     
     % Buffer
     T.phiInfo = phiInfo;
+    T.V = T.V + phiInfo.phi;
 end

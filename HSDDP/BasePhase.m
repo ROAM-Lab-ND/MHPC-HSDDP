@@ -168,7 +168,7 @@ classdef BasePhase < handle
                     cInfo  = Ph.ineq_constr_Info(x,u,y);
                     Ph.n_ineq = length(cInfo.c);
                     al_reb_params.delta  = 0.1*ones(1, Ph.n_ineq);
-                    al_reb_params.eps_ReB = 1;
+                    al_reb_params.eps_ReB = ones(1, Ph.n_ineq);
                     al_reb_params.eps_Smooth = 1;
                 end                                                                                               
             end

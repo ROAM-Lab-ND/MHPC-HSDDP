@@ -2,6 +2,7 @@
 clear all
 clc
 addpath(genpath(pwd));
+rmpath('Backup', 'Prep');
 dt = 0.001;
 FIRSTRUN = 0;
 
@@ -16,7 +17,7 @@ build2DminiCheetahFB(FBMC2D);
 if FIRSTRUN
     WBDynamics_support(WBMC2D);
     FBDynamimcs_support();
-    terminal_constr_support();
+    WB_terminal_constr_support(WBMC2D);
 end
 
 %% Define a bounding gait
