@@ -42,7 +42,7 @@ Qfbf    = zeros(FBMC.xsize, FBMC.xsize, 4);
 % BS
 Qwb(:,:,1)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
 Rwb(:,:,1)      = diag([5,5,1,1]);
-Swb(1:2,1:2,1)  = 0.3*eye(2);
+Swb(3:4,3:4,1)  = 0.3*eye(2);
 Qwbf(:,:,1)     = 100*diag([0,20,8,3,3,3,3, 10,2,0.01,5,5,0.01,0.01]);  
 
 % FL1
@@ -54,14 +54,14 @@ Qwbf(:,:,2)     = 100*diag([0,20,8,3,3,3,3,10,2,0.01,5,5,5,5]);
 % FS
 Qwb(:,:,3)      = 0.01*diag([0,10,5,2,2,2,2,8,1,.01,5,5,5,5]);
 Rwb(:,:,3)      = diag([1,1,5,5]);
-Swb(3:4,3:4,3)  = 0.15*eye(2);
-Qwbf(:,:,3)     = 100*diag([0,20,8,3,3,3,3, 10,2,0.01,5,5,0.01,0.01]);
+Swb(1:2,1:2,3)  = 0.15*eye(2);
+Qwbf(:,:,3)     = 100*diag([0,20,8,3,3,3,3, 10,2,0.01,0.01,0.01,5,5]);
 
 % FL2
 Qwb(:,:,4)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
-Rwb(:,:,4)      = diag([5,5,1,1]);
-Swb(:,:,4)      = 0.3*eye(WBMC.ysize);
-Qwbf(:,:,4)     = 100*diag([0,20,8,3,3,3,3, 10,2,0.01,5,5,0.01,0.01]);
+Rwb(:,:,4)      = eye(WBMC.usize);
+Swb(:,:,4)      = zeros(WBMC.ysize);
+Qwbf(:,:,4)     = 100*diag([0,20,8,3,3,3,3, 10,2,0.01,5,5,5,5]);
 
 % weightings for FB (floating-base) model
 % BS
@@ -95,25 +95,36 @@ end
 
 %% set reference for quadratic cost
 g        =  [0, -9.81]'; % gravity vector
-WBTd     =  repmat(struct('x', zeros(14, 1),...
-                          'u', zeros(4,1),...
-                          'y', [g;g]), [4,1]);
+GRF      =  -WBMC.robotMass *g;
+WBDesiredFState     =  repmat(struct('x', zeros(14, 1),...
+                                   'u', zeros(4,1),...
+                                   'y', [GRF;GRF]), [4,1]);
 
-WBTd(1).x = [[0,-0.1432,-pi/25,0.35*pi,-0.65*pi,0.35*pi,-0.6*pi]';
-              params.vd;1;zeros(5,1)];
-WBTd(2).x = [[0,-0.1418,pi/35,0.2*pi,-0.58*pi,0.25*pi,-0.7*pi]';
-              params.vd;1;zeros(5,1)];
-WBTd(3).x = [[0,-0.1325,-pi/40,0.33*pi,-0.48*pi,0.33*pi,-0.75*pi]';
-              params.vd;1;zeros(5,1)];
-WBTd(4).x = [[0,-0.1490,-pi/25,0.35*pi,-0.7*pi,0.25*pi,-0.60*pi]';
-              params.vd;1;zeros(5,1)];
+WBDesiredFState(1).x = [[0,-0.1432,-pi/25,0.35*pi,-0.65*pi,0.35*pi,-0.6*pi]';
+                         params.vd;1;zeros(5,1)];
+WBDesiredFState(2).x = [[0,-0.1418,pi/35,0.2*pi,-0.58*pi,0.25*pi,-0.7*pi]';
+                         params.vd;-1;zeros(5,1)];
+WBDesiredFState(3).x = [[0,-0.1325,-pi/40,0.33*pi,-0.48*pi,0.33*pi,-0.75*pi]';
+                         params.vd;1;zeros(5,1)];
+WBDesiredFState(4).x = [[0,-0.1490,-pi/25,0.35*pi,-0.7*pi,0.25*pi,-0.60*pi]';
+                         params.vd;-1;zeros(5,1)];
+          
+WBDesiredRState.x = [0,-0.15,0,0,0,0,0, params.vd, 0, 0,0,0,0,0]';
+WBDesiredRState.u = zeros(4,1);
+WBDesiredRState.y = [GRF;GRF];
 
-FBTd = struct('x', [0, -0.16, 0, params.vd, 0, 0]',... 
-              'u', [g;g],...
-              'y', zeros(4,1));          
 for mode = 1:4
-    WBPhases(mode).set_reference(WBTd(mode));
-    FBPhases(mode).set_reference(FBTd);
+    WBDesiredState(mode).x = [WBDesiredRState.x, WBDesiredFState(mode).x];
+    WBDesiredState(mode).u = [WBDesiredRState.u, WBDesiredFState(mode).u];
+    WBDesiredState(mode).y = [WBDesiredRState.y, WBDesiredFState(mode).y];
+end
+
+FBDesiredState = struct('x', [0, -0.16, 0, params.vd, 0, 0]',... 
+                        'u', [GRF;GRF],...
+                        'y', zeros(4,1));          
+for mode = 1:4
+    WBPhases(mode).set_reference(WBDesiredState(mode));
+    FBPhases(mode).set_reference(FBDesiredState);
 end
 
 %% Initialize AL and ReB parameters

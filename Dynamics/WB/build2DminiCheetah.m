@@ -26,7 +26,7 @@ function build2DminiCheetah(Quad)
     Quad.kneeLinkMass        =  mc2D.kneeLinkMass;
     Quad.kneeLinkCoM         =  mc2D.kneeLinkCoM;
     Quad.kneeRotInertia      =  mc2D.kneeRotInertia;
-    
+    Quad.robotMass           =  mc2D.robotMass;
     Quad.buildModel();
     
 end

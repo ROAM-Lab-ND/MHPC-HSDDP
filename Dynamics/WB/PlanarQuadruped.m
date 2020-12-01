@@ -26,7 +26,8 @@ classdef PlanarQuadruped < BaseDyn
         kneeLinkLength
         kneeLinkMass
         kneeLinkCoM
-        kneeRotInertia        
+        kneeRotInertia   
+        robotMass
     end
     
     properties % robot model (spatial v2)

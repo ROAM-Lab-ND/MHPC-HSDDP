@@ -33,7 +33,7 @@ problem_data.dt             = 0.001;
 problem_data.t_horiozns     = [0.08,0.08,0.08,0.08];
 problem_data.N_horizons     = floor(problem_data.t_horiozns./problem_data.dt);
 problem_data.ctrl_horizon   = problem_data.N_horizons(1);
-problem_data.vd             = 1;       % desired forward speed m/s
+problem_data.vd             = 1.0;       % desired forward speed m/s
 
 options.alpha            = 0.1;        % linear search update param
 options.gamma            = 0.01;       % scale the expected cost reduction
@@ -51,7 +51,7 @@ options.Debug            = 1;
 
 %% Define Phases info
 % Construct basic unique phases
-[WBPhases, FBPhases] = ConstructParentPhases(problem_data);
+[WBPhases, FBPhases] = ConstructParentPhases(WBMC2D, FBMC2D,problem_data);
 
 % Preallocate HSDDP phases
 Phases = repmat(BasePhase(), [problem_data.n_Phases, 1]);

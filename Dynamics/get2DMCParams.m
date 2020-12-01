@@ -24,7 +24,7 @@ for i = 1:4
 end
 mc2D.hipLoc{1} = [mc2D.bodyLength, 0, 0]'/2;
 mc2D.hipLoc{2} = [-mc2D.bodyLength, 0, 0]'/2;
-
+mc2D.robotMass = mc2D.bodyMass + 2*mc2D.kneeLinkMass + 2*mc2D.hipLinkMass;
 fieldstoRM = {'abadLinkMass', 'abadLinkCoM', 'abadLoc', 'abadLinkLength'};
 mc2D = rmfield(mc2D, fieldstoRM);
 end

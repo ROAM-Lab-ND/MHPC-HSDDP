@@ -63,13 +63,21 @@ classdef BasePhase < handle
     
     methods % cost
         function lInfo       = running_cost_Info(Ph,k,x,u,y)
-            if size(x,2)== 1
-                xd = Ph.Td.x;
-                ud = Ph.Td.u;
-                yd = Ph.Td.y;                
+            if size(Ph.Td.x,2)<= 2
+                xd = Ph.Td.x(:,1);                            
             else
-                xd = Ph.Td.x(:,k);
+                xd = Ph.Td.x(:,k);                
+            end
+            
+            if size(Ph.Td.u,2)<= 2
+                ud = Ph.Td.u(:,1);
+            else
                 ud = Ph.Td.u(:,k);
+            end
+            
+            if size(Ph.Td.y,2)<= 2
+                yd = Ph.Td.y(:,1);                
+            else
                 yd = Ph.Td.y(:,k);
             end
             
