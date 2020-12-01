@@ -75,10 +75,10 @@ end
 HybridTrajectory = repmat(PhaseTrajectory(),[problem_data.n_Phases, 1]);
 
 for idx = problem_data.n_Phases
-    HybridTrajectory(idx) = PhaseTrajectory(Phases(idx).model.xsize,...
-                                            Phases(idx).model.usize,...
-                                            Phases(idx).model.ysize,...
-                                            problem_data.N_horizons(idx));
+    HybridTrajectory(idx).Initialization(Phases(idx).model.xsize,...
+                                         Phases(idx).model.usize,...
+                                         Phases(idx).model.ysize,...
+                                         problem_data.N_horizons(idx));
 end
 
 %% Run HSDDP
@@ -89,20 +89,4 @@ x0 = [q0;qd0];
 
 HSDDP = HybridSystemsDDP(Phases, HybridTrajectory);
 
-
-% Initialize trajectory using a heuristic controller
-% heuristicControl(HybridTrajectory);
-
-% Ustart = cell(1,length(HybridTrajectory));
-% 
-% for idx = 1:length(HybridTrajectory)
-%     Ustart{idx} = HybridTrajectory(idx).Ubar;
-% end
-% 
-% HSDDP.set_initial_guess(Ustart);
-% 
-% [xopt, uopt, K] = HSDDP.Run(options);
-
-
-
-
+HSDDP.set_initial_condition(x0);

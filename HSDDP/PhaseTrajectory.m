@@ -19,12 +19,12 @@ classdef PhaseTrajectory < handle
     
     methods 
         function T = PhaseTrajectory(xsize, usize, ysize, N_horizon)
-                 if nargin > 0
-                     T.Initialization(xsize, usize, ysize, N_horizon);                     
-                 end
+            if nargin > 0
+                T.Initialization(xsize, usize, ysize, N_horizon);
+            end
         end
         
-        function T = Initialization(T,xsize, usize, ysize, N_horizon)
+        function Initialization(T,xsize, usize, ysize, N_horizon)
            T.Ubar   = zeros(usize, N_horizon);
            T.Xbar   = zeros(xsize, N_horizon);
            T.U      = zeros(usize, N_horizon);
@@ -97,8 +97,12 @@ classdef PhaseTrajectory < handle
             T.Ubar = T.U;
         end
         
-        function set_initial_condition(T, x0)
+        function set_nom_initial_condition(T, x0)
             T.Xbar(:,1) = x0;
+        end
+        
+        function set_act_initial_condition(T, x0)
+            T.X(:,1) = x0;
         end
     end
 end

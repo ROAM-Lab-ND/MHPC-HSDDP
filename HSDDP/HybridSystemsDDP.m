@@ -40,11 +40,11 @@ classdef HybridSystemsDDP < handle
             DDP.hnorm = 0;
             for idx = 1:DDP.n_Phases
                 if idx == 1 % first phase
-                    DDP.hybridT(idx).Xbar(:,1) = DDP.x0;
-                    DDP.hybridT(idx).X(:,1)    = DDP.x0;
+                    DDP.hybridT(idx).set_nom_initial_condition(DDP.x0);
+                    DDP.hybridT(idx).set_act_initial_condition(DDP.x0);
                 else
                     % reset 
-                    DDP.hybridT(idx).X(:,1) = DDP.Phases(idx).resetmap(DDP.hybridT(idx-1).X(:,end));
+                    DDP.hybridT(idx).set_act_initial_condition(DDP.Phases(idx-1).resetmap(DDP.hybridT(idx-1).X(:,end)));
                 end
                 DDP.Phases(idx).set_model_params(DDP.hybridT(idx).X(:,1));
                 DDP.h{idx} = forwardsweep_phase(DDP.Phases(idx), DDP.hybridT(idx), eps, AL_ReB_params(idx), options);
