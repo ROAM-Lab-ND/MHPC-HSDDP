@@ -38,6 +38,7 @@ classdef HybridSystemsDDP < handle
         function forwardsweep(DDP, eps, AL_ReB_params, options)
             DDP.V = 0;
             DDP.hnorm = 0;
+            hnormsqure = 0;
             for idx = 1:DDP.n_Phases
                 if idx == 1 % first phase
                     DDP.hybridT(idx).set_nom_initial_condition(DDP.x0);
@@ -48,21 +49,22 @@ classdef HybridSystemsDDP < handle
                 end
                 DDP.Phases(idx).set_model_params(DDP.hybridT(idx).X(:,1));
                 DDP.h{idx} = forwardsweep_phase(DDP.Phases(idx), DDP.hybridT(idx), eps, AL_ReB_params(idx), options);
-                DDP.hnorm = DDP.hnorm + norm(DDP.h{idx});
+                hnormsqure = hnormsqure + DDP.h{idx}*DDP.h{idx}';
                 DDP.V = DDP.V + DDP.hybridT(idx).V;
-            end            
+            end 
+            DDP.hnorm = sqrt(hnormsqure);
         end
         
         function forwarditeration(DDP, AL_ReB_params, options)
             eps = 1;
             Vprev = DDP.V;
             
-            while eps > 1e-10                                
+            while eps > 1e-10                                                                 
+                 DDP.forwardsweep(eps, AL_ReB_params, options);
+                 
                  if options.Debug
                     fprintf('\t eps=%.3e \t cost change=%.3e \t min=%.3e\n',eps, DDP.V-Vprev, options.gamma* eps*(1-eps/2)*DDP.dV );
                  end
-                
-                 DDP.forwardsweep(eps, AL_ReB_params, options);
                  
                  % check if V is small enough to accept the step
                  if DDP.V < Vprev + options.gamma*eps*(1-eps/2)*DDP.dV
@@ -109,7 +111,7 @@ classdef HybridSystemsDDP < handle
                                           'eps_smooth',[]),[1, DDP.n_Phases]);
                                       
             % Initialize AL and ReB parameters with values defined in
-            % ConstructParentPhases()
+            % Parent phases
             for idx = 1:DDP.n_Phases
                 AL_ReB_params(idx) = DDP.Phases(idx).AL_ReB_params;
             end
@@ -170,7 +172,7 @@ classdef HybridSystemsDDP < handle
                     in_iter = in_iter + 1;     
                     Vprev = DDP.V;                    
                 end
-                fprintf('Total terminal constrain violation %.4f\n',DDP.hnorm);
+                fprintf('Total terminal constraint violation %.4f\n',DDP.hnorm);
                 if (ou_iter>=options.max_AL_iter) || (DDP.hnorm < options.AL_thresh)
                     break;
                 end
@@ -217,8 +219,8 @@ classdef HybridSystemsDDP < handle
                 params(i).lambda = params(i).lambda + h{i}*params(i).sigma;
                 
                 % update ReB params
-                if params(i).beta_delta > 1
-                    params(i).beta_data = 0.5;
+                if options.beta_relax > 1
+                    options.beta_relax = 0.5;
                 end
                 params(i).delta = options.beta_relax*params(i).delta;
                 params(i).delta(params(i).delta<1e-3) = 1e-3;

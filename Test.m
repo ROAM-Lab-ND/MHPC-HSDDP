@@ -42,7 +42,7 @@ options.beta_penalty     = 8;          % penalty update param
 options.beta_relax       = 0.1;        % relaxation update param
 options.beta_reg         = 4;          % regularization update param
 options.max_DDP_iter     = 5;          % maximum DDP iterations
-options.max_AL_iter      = 3;          % maximum AL iterations
+options.max_AL_iter      = 1;          % maximum AL iterations
 options.DDP_thresh       = 0.01;       % Inner loop opt convergence threshold
 options.AL_thresh        = 1e-3;       % Outer loop opt convergence threshold
 options.AL_active        = 1;
@@ -92,10 +92,12 @@ HSDDP = HybridSystemsDDP(Phases, HybridTrajectory);
 
 HSDDP.set_initial_condition(x0);
 
-AL_ReB_params = [Phases.AL_ReB_params];
+% AL_ReB_params = [Phases.AL_ReB_params];
+% 
+% HSDDP.forwardsweep(0, AL_ReB_params, options);
+% 
+% HSDDP.updateNominalTrajectory();
+% 
+% HSDDP.backwardsweep(0);
 
-HSDDP.forwardsweep(0, AL_ReB_params, options);
-
-HSDDP.updateNominalTrajectory();
-
-HSDDP.backwardsweep(0);
+[xopt, uopt, Kopt] = HSDDP.Run(options);
