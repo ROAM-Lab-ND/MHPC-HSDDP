@@ -42,7 +42,7 @@ options.beta_penalty     = 8;          % penalty update param
 options.beta_relax       = 0.1;        % relaxation update param
 options.beta_reg         = 4;          % regularization update param
 options.max_DDP_iter     = 5;          % maximum DDP iterations
-options.max_AL_iter      = 1;          % maximum AL iterations
+options.max_AL_iter      = 4;          % maximum AL iterations
 options.DDP_thresh       = 0.01;       % Inner loop opt convergence threshold
 options.AL_thresh        = 1e-3;       % Outer loop opt convergence threshold
 options.AL_active        = 1;
@@ -88,6 +88,10 @@ q0 = [0,-0.1093,-0.1542 1.0957 -2.2033 0.9742 -1.7098]';
 qd0 = [0.9011 0.2756 0.7333 0.0446 0.0009 1.3219 2.7346]';
 x0 = [q0;qd0];
 
+HybridTrajectory(1).set_nom_initial_condition(x0);
+
+heuristic_bounding_controller(WBMC2D, problem_data.phaseSeq(1:problem_data.n_WBPhases), HybridTrajectory(1:problem_data.n_WBPhases));
+
 HSDDP = HybridSystemsDDP(Phases, HybridTrajectory);
 
 HSDDP.set_initial_condition(x0);
@@ -99,5 +103,6 @@ HSDDP.set_initial_condition(x0);
 % HSDDP.updateNominalTrajectory();
 % 
 % HSDDP.backwardsweep(0);
+
 
 [xopt, uopt, Kopt] = HSDDP.Run(options);

@@ -337,6 +337,28 @@ classdef PlanarQuadruped < BaseDyn
             ICSPos([2,4],:) = [];
         end
         
+        function ICSPos     = getFootPosition(Quad, q, mode)
+             % Get contact jacobian and its partial according to mode spec
+            ICSPos = []; 
+            linkidx = []; contactLoc = [];            
+            switch mode
+                case 1
+                    linkidx = 5; contactLoc = [0,-Quad.kneeLinkLength]';
+                case 3
+                    linkidx = 3; contactLoc = [0,-Quad.kneeLinkLength]'; % kneeLoc column vec                
+                case {2,4}
+                    linkidx = []; contactLoc = [];
+                case 5
+                    linkidx = [3, 5];
+                    contactLoc = [0,-Quad.kneeLinkLength;
+                                  0,-Quad.kneeLinkLength]';
+            end
+            
+            for cidx = 1:length(linkidx)
+                ICSPos = [ICSPos,Quad.getPosition(q, linkidx(cidx), contactLoc(:,cidx))];                
+            end
+        end
+        
         function [J,Jd]     = getJacobian(Quad, x, linkidx, contactLoc)
             % This function computes Jacobian and Jacobian Derivative for
             % contact point on link linkidx.
