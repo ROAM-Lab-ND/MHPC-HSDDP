@@ -83,8 +83,8 @@ classdef HybridSystemsDDP < handle
                     Hprime = zeros(DDP.Phases(idx).model.xsize, DDP.Phases(idx).model.xsize);
                     dVprime = 0;
                 else
-                    Gprime = DDP.hybridT(idx+1).G(:,end);
-                    Hprime = DDP.hybridT(idx+1).H(:,:,end);
+                    Gprime = DDP.hybridT(idx+1).G(:,1);
+                    Hprime = DDP.hybridT(idx+1).H(:,:,1);
                     dVprime = DDP.hybridT(idx+1).dV;
                 end
                 success = backwardsweep_phase(DDP.Phases(idx), DDP.hybridT(idx), Gprime, Hprime, dVprime, regularization);
@@ -92,6 +92,7 @@ classdef HybridSystemsDDP < handle
                     break;
                 end
             end
+            DDP.dV = DDP.hybridT(1).dV;
         end
                         
         function [xopt, uopt, Kopt] = Run(DDP, options)

@@ -96,4 +96,6 @@ AL_ReB_params = [Phases.AL_ReB_params];
 
 HSDDP.forwardsweep(0, AL_ReB_params, options);
 
-X = [HybridTrajectory.X];
+HSDDP.updateNominalTrajectory();
+
+HSDDP.backwardsweep(0);

@@ -14,7 +14,7 @@ G = (sigma/2)^2*2*(h*hx)' + (lambda*hx)';
 % Hessian of AL term
 for i = 1:length(h)
     hi = h(i);
-    hix = hx(:,i);
+    hix = hx(i,:);
     hixx = hxx(:,:,i);
     H = H + (sigma/2)^2*2*((hix'*hix) + hi*hixx) + lambda(i)*hixx;
 end
