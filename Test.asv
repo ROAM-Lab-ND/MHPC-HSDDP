@@ -99,6 +99,7 @@ HSDDP.set_initial_condition(x0);
 [xopt, uopt, Kopt] = HSDDP.Run(options);
 
 %% Visualize motion
+% process trajectory in graphics format
 X = [HybridTrajectory.Xbar];
 
 % construct graphics and visualize data
@@ -108,5 +109,4 @@ graphicsOptions.push_active = 1;
 graphicsOptions.GRF_acitive = 1;
 
 graphics = Graphics(get3DMCParams());
-graphics.process2DData(X);
 graphics.visualize(trajectory, graphicsOptions);

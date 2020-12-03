@@ -122,10 +122,8 @@ classdef HybridSystemsDDP < handle
             DDP.updateNominalTrajectory();
             
             % Iterate
-            ou_iter = 1;
-            in_iter = 1;
-            
-            
+            ou_iter = 1;           
+                        
             while 1 % Implement AL and ReB in outer loop
                 if  options.Debug
                     fprintf('====================================================\n');
@@ -138,7 +136,8 @@ classdef HybridSystemsDDP < handle
                     DDP.updateNominalTrajectory();
                 end
                 Vprev = DDP.V;
-                regularization = 0;                
+                regularization = 0;       
+                in_iter = 1;
                 while 1 % DDP in inner loop
                     if  options.Debug
                         fprintf('================================================\n');
@@ -154,7 +153,7 @@ classdef HybridSystemsDDP < handle
                         success = DDP.backwardsweep(regularization);
                         
                         if success == 0
-                            regularization = max(regularization*4, 1e-3);
+                            regularization = max(regularization*options.beta_reg, 1e-3);
                         end
                     end
                     regularization = regularization/20;
@@ -176,6 +175,7 @@ classdef HybridSystemsDDP < handle
                 if (ou_iter>=options.max_AL_iter) || (DDP.hnorm < options.AL_thresh)
                     break;
                 end
+                ou_iter = ou_iter + 1;
                 AL_ReB_params = DDP.update_AL_ReB_params(AL_ReB_params, DDP.h, options);
             end
                                    
@@ -215,8 +215,9 @@ classdef HybridSystemsDDP < handle
         function params = update_AL_ReB_params(params, h, options)
             for i = 1:length(params)
                 
-                params(i).sigma = options.beta_penalty * params(i).sigma;
                 params(i).lambda = params(i).lambda + h{i}*params(i).sigma;
+                params(i).sigma = options.beta_penalty * params(i).sigma;
+                
                 
                 % update ReB params
                 if options.beta_relax > 1

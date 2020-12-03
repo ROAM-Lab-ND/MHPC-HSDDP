@@ -1,0 +1,122 @@
+classdef Graphics < handle
+    properties
+        model
+    end
+    methods
+        function G = Graphics(robotParams)
+            G.model.g       = [0 0 -9.81]';
+            G.model.p_hip   = robotParams.abadLoc; % ignores abad length
+            G.model.l1      = robotParams.hipLinkLength;
+            G.model.l2      = robotParams.kneeLinkLength;
+        end
+    end
+    
+    methods
+        function visualize(G, trajectory, options)            
+            bigAnim = figure(198);
+            set(bigAnim, 'Position', get(0, 'Screensize'));
+            clf
+            %f = subplot(211)
+            hold on
+            % set(f,'Name','3D-Output of a bounding quadruped');  % Window title
+            set(bigAnim,'Color','w');         % Background colo
+            set(bigAnim,'Renderer','OpenGL')
+            drawFloor()
+            
+            l = G.model.p_hip{1}(1) - G.model.p_hip{4}(1);
+            w = -G.model.p_hip{1}(2) + G.model.p_hip{4}(2);
+            h = w/3;
+                                              
+            for quad_idx = 1:quad_num
+                
+            end
+                        
+            camproj('perspective');
+            camtarget([-0.4, -0.4, +0.2])
+            view([65 10])
+            camup ([0,0,1]);
+            camva(1.3)
+            axis off
+            box off
+            axis equal
+            light('Position',[5 20 12 ],'Style','local','Color',[.7 .7 .7]);
+            drawnow();
+            
+            for quad_idx = 1:quad_num
+                updateObject(quad(quad_idx).body,[0 0 1]',eye(3));
+                updateArrow(quad(quad_idx).force,[0 0 0]',[0 0 0]');
+            end
+                        
+            Rbase = expm(cross([0 pi/2 0]));
+                        
+            for quad_idx = 1:quad_num
+                x_c{quad_idx}           = trajectory{quad_idx}.x_c; % continuously updating part of state
+                x_d{quad_idx}           = trajectory{quad_idx}.x_d; % discretely updating part of state
+                q{quad_idx}             = trajectory{quad_idx}.q;
+                force{quad_idx}         = trajectory{quad_idx}.force;
+                force_loc{quad_idx}     = trajectory{quad_idx}.force_loc;
+            end
+            
+            size_x_c = size(x_c{1});
+            t        = trajectory{1}.t;
+            
+            M = struct('cdata',[],'colormap',[]);
+            for n = 1:size_x_c(2)
+                for quad_idx = 1:quad_num
+                    p       = x_c{quad_idx}(4:6,n);
+                    rpy     = x_c{quad_idx}(1:3,n);
+                    R       = rpyToR(rpy);
+                    f       = force{quad_idx}(:,n);
+                    f_loc   = force_loc{quad_idx}(:,n);
+                    
+                    if p(3) > 0.7    % hide object if flows above this height
+                        hideObject(quad(quad_idx).body);
+                        for i = 1:4
+                            hideObject(quad(quad_idx).hip(i));
+                            hideObject(quad(quad_idx).shank(i));
+                        end
+                    else
+                        updateObject(quad(quad_idx).body,p, R);
+                        updateArrow(quad(quad_idx).force, f_loc, f/500);
+                        
+                        for i = 1:4
+                            if x_d{quad_idx}.leg_state{i} == 0
+                                hideObject(quad(quad_idx).hip(i));
+                                hideObject(quad(quad_idx).shank(i));
+                            else
+                                
+                                %                 [~, qn] = getTorque(x_c(n,:)', x_d, model, i, [0 0 0]');
+                                qn = q{quad_idx}(3*(i-1)+1:3*i,n);
+                                [pFoot, Rshank, pKnee,RHip] = fwdKin(qn,G.model);
+                                
+                                updateObject(quad(quad_idx).hip(i), p+R*G.model.p_hip{i},R*RHip*Rbase);
+                                updateObject(quad(quad_idx).shank(i), p+R*G.model.p_hip{i}+R*pKnee,R*Rshank*Rbase);
+                                %                 updateArrow(quad.force(i),p+R*(model.p_hip{i}+pFoot),f_s{i}/500);
+                            end
+                        end
+                    end
+                    if norm(f) == 0
+                        hideObject(quad(quad_idx).force);
+                    end
+                end
+                figure(198)
+                camtarget([p(1)-1,p(2)-2, .2]);
+                drawnow;
+                Frame = getframe;
+                M(end+1) = Frame;
+                %         if norm(f) ~= 0         % pause at disturbance
+                %             for add = 1:20
+                %                 M(end+1) = Frame;
+                %             end
+                %         end
+            end
+            M = M(2:end);
+            v = VideoWriter('Multiple_quad.avi');
+            open(v)
+            for i = 1:length(M)
+                writeVideo(v, M(i));
+            end
+            close(v);
+        end
+    end
+end
