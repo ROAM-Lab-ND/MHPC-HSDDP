@@ -109,4 +109,4 @@ graphicsOptions.GRF_acitive = 1;
 
 graphics = Graphics(get3DMCParams());
 graphics.process2DData(X);
-graphics.visualize(trajectory, graphicsOptions);
+graphics.visualize( graphicsOptions);

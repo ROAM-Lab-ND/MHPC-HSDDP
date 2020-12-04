@@ -13,7 +13,7 @@ classdef Graphics < handle
     end
     
     methods
-        function visualize(G, trajectory, options)            
+        function visualize(G, options)            
             bigAnim = figure(198);
 %             set(bigAnim, 'Position', get(0, 'Screensize'));
             clf
@@ -54,14 +54,14 @@ classdef Graphics < handle
                         
             Rbase = expm(cross([0 pi/2 0]));
                         
-            x_c           = trajectory.x_c; % continuously updating part of state
-            x_d           = trajectory.x_d; % discretely updating part of state
-            q             = trajectory.q;
+            x_c           = G.trajectory.x_c; % continuously updating part of state
+            x_d           = G.trajectory.x_d; % discretely updating part of state
+            q             = G.trajectory.q;
 %             push         = trajectory.push;
 %             push_loc     = trajectory.push_loc;
             
             size_x_c = size(x_c);
-            t        = trajectory.t;
+            t        = G.trajectory.t;
             
             M = struct('cdata',[],'colormap',[]);
             for n = 1:size_x_c(2)
