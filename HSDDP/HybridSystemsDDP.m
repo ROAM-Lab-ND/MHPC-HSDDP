@@ -1,7 +1,7 @@
 classdef HybridSystemsDDP < handle
     properties %(Access = private)
         x0
-        n_Phases
+        n_Phases      
         N_horizons
         Phases
         hybridT     % array of phase trajectory
@@ -12,6 +12,10 @@ classdef HybridSystemsDDP < handle
         dV = 0;
         h;      % terminal constraint
         hnorm = 0;  % total violation evaluated in 2norm
+    end
+    
+    properties
+        FootPlanner
     end
     
     methods %(constructor)
@@ -39,15 +43,35 @@ classdef HybridSystemsDDP < handle
             DDP.V = 0;
             DDP.hnorm = 0;
             hnormsqure = 0;
-            for idx = 1:DDP.n_Phases
-                if idx == 1 % first phase
-                    DDP.hybridT(idx).set_nom_initial_condition(DDP.x0);
-                    DDP.hybridT(idx).set_act_initial_condition(DDP.x0);
+            Footholds = [];
+            for idx = 1:DDP.n_Phases                
+                if idx == 1 
+                    % first phase                    
+                    if strcmp(DDP.Phases(idx).hierarchy, 'simple')
+                        Pr = [eye(3), zeros(3,11);
+                              zeros(3,7),eye(3),zeros(3,4)];
+                        initialState = Pr*DDP.x0;  
+                    else
+                        initialState = DDP.x0;
+                    end
+                    
+                    DDP.hybridT(idx).set_nom_initial_condition(initialState);
+                    DDP.hybridT(idx).set_act_initial_condition(initialState);
                 else
                     % reset 
-                    DDP.hybridT(idx).set_act_initial_condition(DDP.Phases(idx-1).resetmap(DDP.hybridT(idx-1).X(:,end)));
+                    initialState = DDP.Phases(idx-1).resetmap(DDP.hybridT(idx-1).X(:,end));
+                    DDP.hybridT(idx).set_act_initial_condition(initialState);
                 end
-                DDP.Phases(idx).set_model_params(DDP.hybridT(idx).X(:,1));
+                
+                % execute foothold planner in the first simple model phase   
+                firstSimple = find(strcmp({DDP.Phases.hierarchy},'simple'),1);
+                if idx == firstSimple
+                    Footholds = DDP.FootPlanner.getFoothold(initialState);
+                end                                
+                                
+                if strcmp(DDP.Phases(idx).hierarchy, 'simple')
+                    DDP.Phases(idx).set_model_params(Footholds(:,idx - (firstSimple-1)));
+                end
                 DDP.h{idx} = forwardsweep_phase(DDP.Phases(idx), DDP.hybridT(idx), eps, AL_ReB_params(idx), options);
                 hnormsqure = hnormsqure + DDP.h{idx}*DDP.h{idx}';
                 DDP.V = DDP.V + DDP.hybridT(idx).V;
@@ -209,6 +233,10 @@ classdef HybridSystemsDDP < handle
                 updateNominal(DDP.hybridT(idx));
             end
         end  
+        
+        function set_FootPlanner(DDP, Planner)
+            DDP.FootPlanner = Planner;
+        end
     end
     
     methods (Static)

@@ -4,27 +4,27 @@ function [WBPhases, FBPhases] = ConstructParentPhases(WBMC, FBMC, params)
 
 % Initialize WBPhases and FBPhases
 for mode = 1:4
-    WBPhases(mode) = BasePhase(WBMC, mode);
-    FBPhases(mode) = BasePhase(FBMC, mode);
+    WBPhases(mode) = BasePhase(WBMC, mode, 'full');
+    FBPhases(mode) = BasePhase(FBMC, mode, 'simple');
 end
 
 %% Set constraints
 % The terminal constraint and ineq constraint are inactive by default
 WBPhases(1).set_ineq_constraint(@WB_ineq_constr_Info);
-WBPhases(1).set_contraint_active('ineq'); 
+WBPhases(1).set_constraint_active('ineq'); 
 
 WBPhases(2).set_terminal_constraint(@WB_terminal_constr_Info);
-WBPhases(2).set_contraint_active('terminal');
+WBPhases(2).set_constraint_active('terminal');
 WBPhases(2).set_ineq_constraint(@WB_ineq_constr_Info);
-WBPhases(2).set_contraint_active('ineq');
+WBPhases(2).set_constraint_active('ineq');
 
 WBPhases(3).set_ineq_constraint(@WB_ineq_constr_Info);
-WBPhases(3).set_contraint_active('ineq');
+WBPhases(3).set_constraint_active('ineq');
 
 WBPhases(4).set_terminal_constraint(@WB_terminal_constr_Info);
-WBPhases(4).set_contraint_active('terminal');
+WBPhases(4).set_constraint_active('terminal');
 WBPhases(4).set_ineq_constraint(@WB_ineq_constr_Info);
-WBPhases(4).set_contraint_active('ineq');
+WBPhases(4).set_constraint_active('ineq');
 
 %% set quadratic cost weightings
 % Preallocate memory to accelerate computation
@@ -66,27 +66,27 @@ Qwbf(:,:,4)     = 100*diag([0,20,8,3,3,3,3, 10,2,0.01,5,5,5,5]);
 % weightings for FB (floating-base) model
 % BS
 Qfb(:,:,1)  = 0.01*diag([0,10,5,8,5,0.01]);
-Rfb(:,:,1)  = 0.2*eye(FBMC.usize);
+Rfb(3:4,3:4,1)  = 0.2*eye(2);
 Sfb(:,:,1)  = zeros(FBMC.ysize);
 Qfbf(:,:,1) = 100*diag([0,20,8,10,8,0.01]); 
 
 % FL1
 Qfb(:,:,2)  = 0.01*diag([0,10,5,8,2,0.01]);
-Rfb(:,:,2)  = 0.01*eye(FBMC.usize);  
+Rfb(:,:,2)  = zeros(FBMC.usize);  
 Sfb(:,:,2)  = zeros(FBMC.ysize);
-Qfbf(:,:,2) = 100*diag([0,20,8,10,8,0.01]); 
+Qfbf(:,:,2) = 100*diag([0,20,8,10,1,0.01]); 
 
 % FS
 Qfb(:,:,3)  = 0.01*diag([0,10,5,8,5,0.01]);
-Rfb(:,:,3)  = 0.1*eye(FBMC.usize);
+Rfb(1:2,1:2,3)  = 0.1*eye(2);
 Sfb(:,:,3)  = zeros(FBMC.ysize);
 Qfbf(:,:,3) = 100*diag([0,20,8,10,8,0.01]);  
 
 % FL2
-Qfb(:,:,4)  = 0.01*diag([0,10,5,8,5,0.01]);
-Rfb(:,:,4)  = 0.01*eye(FBMC.usize);
+Qfb(:,:,4)  = 0.01*diag([0,10,5,8,2,0.01]);
+Rfb(:,:,4)  = zeros(FBMC.usize);
 Sfb(:,:,4)  = zeros(FBMC.ysize);
-Qfbf(:,:,4) = 100*diag([0,20,8,10,8,0.01]); 
+Qfbf(:,:,4) = 100*diag([0,20,8,10,1,0.01]); 
 
 for mode = 1:4
     WBPhases(mode).set_weightings(Qwb(:,:,mode),Rwb(:,:,mode),Swb(:,:,mode),Qwbf(:,:,mode));
@@ -154,7 +154,11 @@ WB_AL_ReB_params(4).eps_ReB = [1e-5*ones(1,2*4),0*ones(1,2*4)];
 
 
 for mode = 1:4
+    % Initialize AL_ReB_params
+    % Default initialization if no input arguments
+    % If constraint handle is not specified and there is no input
+    % arguements, constraint handle and associated param would be empty
     WBPhases(mode).set_AL_ReB_params(WB_AL_ReB_params(mode));
-    FBPhases(mode).set_AL_ReB_params(); % Default initialization if no input arguments
+    FBPhases(mode).set_AL_ReB_params(); 
 end
 end

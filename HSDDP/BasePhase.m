@@ -11,6 +11,9 @@ classdef BasePhase < handle
         Td      % desired trajectory. Could be either time-series data or constant value 
         dt 
         time
+        model_transition_flag = 0;
+        Pr
+        hierarchy
     end
     
     properties % weightings of quadratic cost
@@ -26,13 +29,13 @@ classdef BasePhase < handle
     end
     
     methods % Constructor        
-        function Ph = BasePhase(model, mode)            
+        function Ph = BasePhase(model, mode, hierarchy)            
            if nargin > 0
-               Ph.Initialization(model, mode);
-           end
+               Ph.Initialization(model, mode, hierarchy);
+           end           
         end
         
-        function Initialization(Ph, model, mode)
+        function Initialization(Ph, model, mode, hierarchy)
             Ph.model = model;
             Ph.mode  = mode;
             Ph.Q = eye(model.xsize);
@@ -40,6 +43,7 @@ classdef BasePhase < handle
             Ph.S = zeros(model.ysize);
             Ph.Qf = 50*eye(model.xsize);
             Ph.dt = model.dt;
+            Ph.hierarchy = hierarchy;
         end
     end
     
@@ -50,6 +54,13 @@ classdef BasePhase < handle
         
         function [x_next, y] = resetmap(Ph,x)
             [x_next, y] = Ph.model.resetmap(x,Ph.mode,Ph.next_mode);
+            if Ph.model_transition_flag
+                Ph.Pr = [eye(3), zeros(3,11);
+                      zeros(3,7),eye(3),zeros(3,4)];
+                x_next = Ph.Pr*x_next;
+            else
+                Ph.Pr = eye(Ph.model.xsize);
+            end
         end
         
         function dynInfo     = dynamics_par(Ph,x,u)
@@ -57,7 +68,11 @@ classdef BasePhase < handle
         end
         
         function Px          = resetmap_par(Ph,x)
-            Px = Ph.model.resetmap_par(x,Ph.mode,Ph.next_mode);            
+            Px = Ph.model.resetmap_par(x,Ph.mode,Ph.next_mode); 
+            if isempty(Ph.Pr)
+                Ph.Pr = eye(Ph.model.xsize);
+            end
+            Px = Ph.Pr*Px;
         end                                           
     end
     
@@ -92,15 +107,23 @@ classdef BasePhase < handle
     
     methods % constraint
         function [h, hx, hxx]= terminal_constr_Info(Ph, x)
-            message = sprintf('Terminal constraint is not set for mode %d',Ph.mode);
-            assert(~isempty(Ph.termconstr_handle),message);
-            [h, hx, hxx] = Ph.termconstr_handle(x,Ph.mode);             
+            if Ph.termconstr_active
+                message = sprintf('Terminal constraint is not set for mode %d',Ph.mode);
+                assert(~isempty(Ph.termconstr_handle),message);
+                [h, hx, hxx] = Ph.termconstr_handle(x,Ph.mode);  
+            else
+                h = [];
+            end                                   
         end        
         
         function ineqInfo    = ineq_constr_Info(Ph, x, u, y) 
-            message = sprintf('Ineq constraint is not set for mode %d', Ph.mode);
-            assert(~isempty(Ph.ineqconstr_handle), message);
-            ineqInfo = Ph.ineqconstr_handle(x, u, y, Ph.mode);         
+            if Ph.ineqconstr_active
+                message = sprintf('Ineq constraint is not set for mode %d', Ph.mode);
+                assert(~isempty(Ph.ineqconstr_handle), message);  
+                ineqInfo = Ph.ineqconstr_handle(x, u, y, Ph.mode); 
+            else
+                ineqInfo = [];
+            end                          
         end
     end
     
@@ -109,7 +132,7 @@ classdef BasePhase < handle
             Ph.Q = Q; Ph.R = R; Ph.S = S; Ph.Qf = Qf;
         end
         
-        function set_contraint_active(Ph, constrType)
+        function set_constraint_active(Ph, constrType)
             switch constrType
                 case 'terminal'
                     Ph.termconstr_active = 1;
@@ -132,8 +155,8 @@ classdef BasePhase < handle
             Ph.Td = Tdesire;
         end
         
-        function set_model_params(Ph, x0)           
-            Ph.model.Initialize_model(x0, Ph.Td.x, Ph.time);
+        function set_model_params(Ph, p)           
+            Ph.model.Initialize_model(p);
         end
         
         function set_mode(Ph, mode)
@@ -151,11 +174,11 @@ classdef BasePhase < handle
                 x   =  zeros(Ph.model.xsize,1);
                 u   =  zeros(Ph.model.usize,1);
                 y   =  zeros(Ph.model.ysize,1);
-                al_reb_params.lambda = [];
                 al_reb_params.sigma  = [];
+                al_reb_params.lambda = [];                
                 al_reb_params.delta  = [];   
                 al_reb_params.eps_ReB = [];
-                al_reb_params.eps_Smooth = [];
+                al_reb_params.eps_smooth = [];
                 
                 if Ph.termconstr_active
                     hInfo  = Ph.terminal_constr_Info(x);
@@ -170,13 +193,25 @@ classdef BasePhase < handle
                     al_reb_params.delta  = 0.1*ones(1, Ph.n_ineq);
                     al_reb_params.eps_ReB = ones(1, Ph.n_ineq);
                     al_reb_params.eps_Smooth = 1;
-                end                                                                                               
+                end   
+            else
+                if isempty(Ph.termconstr_handle)
+                    assert(isempty([al_reb_params.lambda, al_reb_params.sigma]), 'non-empty AL params for empty terminal constraint');
+                end
+                
+                if isempty(Ph.ineqconstr_handle)
+                    assert(isempty([al_reb_params.delta, al_reb_params.eps_ReB]), 'non-empty ReB params for empty ineqconstraint');
+                end
             end
             Ph.AL_ReB_params = al_reb_params;
         end  
         
         function set_next_mode(Ph, next_mode) 
             Ph.next_mode = next_mode;
+        end
+        
+        function set_model_transition_flag(Ph, flag)
+            Ph.model_transition_flag = flag;            
         end
        
     end

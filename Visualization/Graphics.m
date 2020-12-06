@@ -52,7 +52,7 @@ classdef Graphics < handle
             updateObject(Quad.body,[0 0 1]',eye(3));
 %             updateArrow(Quad.push,[0 0 0]',[0 0 0]');
                         
-            Rbase = expm(cross([0 pi/2 0]));
+            Rbase = expm(Cross([0 pi/2 0]));
                         
             x_c           = G.trajectory.x_c; % continuously updating part of state
             x_d           = G.trajectory.x_d; % discretely updating part of state
@@ -105,7 +105,7 @@ classdef Graphics < handle
                 M(end+1) = Frame;               
             end
             M = M(2:end);
-            v = VideoWriter('Multiple_Quad.avi');
+            v = VideoWriter('QuqadrupedBounding.avi');
             open(v)
             for i = 1:length(M)
                 writeVideo(v, M(i));
@@ -122,9 +122,9 @@ classdef Graphics < handle
             l2 = G.model.l2;
             
             
-            R01 = expm(cross([t1 0 0]));
-            R12 = expm(cross([0 t2 0]));
-            R23 = expm(cross([0 t3 0]));
+            R01 = expm(Cross([t1 0 0]));
+            R12 = expm(Cross([0 t2 0]));
+            R23 = expm(Cross([0 t3 0]));
             p1 = R01*R12 * [ l1 ; 0 ;0];
             R1 = R01*R12;
             

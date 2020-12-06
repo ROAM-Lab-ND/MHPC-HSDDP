@@ -19,7 +19,7 @@ mc2DParams = get2DMCParams(mc3DParams);
 % continuous dynamics
 f = [qd;
      u(1:2,1)/m + u(3:4)/m + [0,-9.81]';
-     s(1)*I\cross2D((p(1:2,1) - x(1:2,1)),u(1:2,1)) + s(2)*I\cross2D((p(3:4,1) - x(1:2,1)),u(3:4,1))];
+     s(1)*(I\cross2D((p(1:2,1) - x(1:2,1)),u(1:2,1))) + s(2)*(I\cross2D((p(3:4,1) - x(1:2,1)),u(3:4,1)))];
 
 % partials of continuous dynamics       
 fx = jacobian(f, x);
