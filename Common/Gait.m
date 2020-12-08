@@ -3,6 +3,26 @@ classdef Gait < handle
         name
         gait
         bounding_gait = [1,2,3,4]; % one bounding gait cycle with unique phase index
+        
+        gait_Enabled
+        
+        period_time
+        timeStance
+        timeSwing
+        timeStanceRemaining
+        timeSwingRemaning
+        
+        switchingPhase
+        phaseVariable
+        phaseStance
+        phaseSwing
+        phaseScale
+        phaseOffset
+        
+        contactStateScheduled
+        contactStatePrev
+        touchdownScheduled
+        liftoffScheduled
     end
     
     methods

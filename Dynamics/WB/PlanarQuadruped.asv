@@ -327,28 +327,23 @@ classdef PlanarQuadruped < BaseDyn
         function ICSPos     = getPosition(Quad,q,linkidx, contactLoc)
             % This function gets the position of a contact point w.r.t. ICS.
             % ContactLoc is defined in local frame
-            % Link index convention: body 1, f hip 2, f knee 3, b hip 4, b knee 5,                                   
-            T  = Quad.getKinematics(q); ICSPos = [];
-            for i = 1:size(contactLoc, 2)
-                contactLoc_aug = [contactLoc(1,i), 0, contactLoc(2,i), 1]';
-                ICSPos = [ICSPos,T{linkidx}*contactLoc_aug];
-            end            
-                        
+            % Link index convention: body 1, f hip 2, f knee 3, b hip 4, b knee 5,                       
+            
+            T  = Quad.getKinematics(q);
+            contactLoc_aug = [contactLoc(1), 0, contactLoc(2), 1]';
+            ICSPos = T{linkidx}*contactLoc_aug;
+            
             % remove y component and homogeneuous component
             ICSPos([2,4],:) = [];
         end
         
         function BodyPos  = getPositionBodyFrame(Quad,q,linkidx, contactLoc)
-            
-            T  = Quad.getKinematics(q); BodyPos = [];
-            
-            for i = 1:size(contactLoc,2)
-                contactLoc_aug = [contactLoc(1,i), 0, contactLoc(2,i), 1]';
-                BodyPos = [BodyPos, T{1}\T{linkidx}*contactLoc_aug];
-            end
+            T  = Quad.getKinematics(q);
+            contactLoc_aug = [contactLoc(1), 0, contactLoc(2), 1]';
+            ICSPos = T{linkidx}*contactLoc_aug;
             
             % remove y component and homogeneuous component
-            BodyPos([2,4],:) = [];
+            ICSPos([2,4],:) = [];
         end
         
         function ICSPos     = getFootPosition(Quad, q, mode)
