@@ -28,12 +28,12 @@ bounding = Gait('bounding');
 currentPhase = 1; 
 
 %% Set problem data and optimization options
-problem_data.n_Phases       = 6;       % total nuber of phases
-problem_data.n_WBPhases     = 4;       % number of whole body phases
-problem_data.n_FBPhases     = 2;       % number of floating-base phases
+problem_data.n_Phases       = 8;       % total nuber of phases
+problem_data.n_WBPhases     = 8;       % number of whole body phases
+problem_data.n_FBPhases     = 0;       % number of floating-base phases
 problem_data.phaseSeq       = bounding.get_gaitSeq(currentPhase, problem_data.n_Phases+1);
 problem_data.dt             = dt;
-problem_data.t_horizons     = [0.08,0.08,0.08,0.08,0.08,0.08];
+problem_data.t_horizons     = [0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08];
 problem_data.N_horizons     = floor(problem_data.t_horizons./problem_data.dt);
 problem_data.ctrl_horizon   = problem_data.N_horizons(1);
 problem_data.vd             = 1.0;     % desired forward speed m/s
@@ -61,7 +61,7 @@ Phases = repmat(BasePhase(), [problem_data.n_Phases, 1]);
 
 % Allocate WB (whole-body) phases
 for idx = 1:problem_data.n_WBPhases
-    Phases(idx) = WBPhases(problem_data.phaseSeq(idx));
+    Phases(idx) = copy(WBPhases(problem_data.phaseSeq(idx)));
     Phases(idx).set_next_mode(problem_data.phaseSeq(idx+1))
     Phases(idx).set_time(problem_data.t_horizons(idx)); % set time of period for each phase
     Phases(idx).set_model_transition_flag(0);
@@ -72,7 +72,7 @@ end
 
 % Allocate FB (floating-base) phases
 for idx = problem_data.n_WBPhases+1:problem_data.n_Phases
-    Phases(idx) = FBPhases(problem_data.phaseSeq(idx));
+    Phases(idx) = copy(FBPhases(problem_data.phaseSeq(idx)));
     Phases(idx).set_next_mode(problem_data.phaseSeq(idx+1))
     Phases(idx).set_time(problem_data.t_horizons(idx));
 end
@@ -144,7 +144,7 @@ for i = 1:problem_data.n_WBPhases
     
     X = [X, Xphase];
     
-    x0 = Xphase(:,predix);
+    x0 = Xphase(:,predidx);
     
     lastDelay = currentDelay;
 end

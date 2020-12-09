@@ -1,4 +1,4 @@
-classdef BasePhase < handle
+classdef BasePhase < matlab.mixin.Copyable
     properties    
         model
         mode {mustBePositive, mustBeInteger} = 1;
