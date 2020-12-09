@@ -1,7 +1,7 @@
 %% Generate support functions
 clear all
 clc
-addpath(genpath(pwd));
+addpath(genpath('..\..\'));
 rmpath('Backup', 'Prep');
 dt = 0.001;
 FIRSTRUN = 0;
@@ -108,11 +108,49 @@ HSDDP.set_FootPlanner(FootPlanner);
 
 [xopt, uopt, Kopt] = HSDDP.Run(options);
 
+%% Test simulator
+% create simulator using planar miniCheetah model and ground at -0.404
+sim = Simulator(WBMC2D);
+sim.set_groundInfo(-0.404);
+
+% Initialize delays for last phase and current phase
+% Last phase delay tells simulator and controller to start at where last phase ends
+% Current phase delay tells simulator to extend termination time
+lastDelay = 0;
+currentDelay = 0;
+X = [];
+for i = 1:problem_data.n_WBPhases
+    % Initialize mhpc controller with planned trajectory, control and
+    % feedback gain
+    controller = mhpcController(xopt(i:end), uopt(i:end), Kopt(i:end));
+    
+    % Tell the controller the delay of last phase
+    controller.InformControllerDelay(lastDelay);
+    
+    % Set controller to the simulator
+    sim.set_Controller(controller);
+    
+    % Intialize simulator with scheduled phase sequence, phase horizons and
+    % control horizons (to be applied)
+    sim.set_horizonParams(problem_data.phaseSeq(i:end), problem_data.N_horizons(i:end),problem_data.N_horizons(i));
+    
+    % Recalculate the phase horizon considering the effect of last delay
+    sim.recalcHorizonforDelay(lastDelay);
+    
+    % Run simulator
+    % predidx indicates when delay = 0. This should be used as the initial
+    % condition for the next MHPC planning.
+    [Xphase, predidx] = sim.run(x0,currentDelay);
+    
+    X = [X, Xphase];
+    
+    x0 = Xphase(:,predix);
+    
+    lastDelay = currentDelay;
+end
 
 
 %% Visualize motion
-X = [HybridTrajectory(1:problem_data.n_WBPhases).Xbar];
-
 % construct graphics and visualize data
 graphicsOptions.body_active = 1;
 graphicsOptions.leg_active = 1;
