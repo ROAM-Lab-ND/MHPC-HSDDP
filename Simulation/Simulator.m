@@ -17,7 +17,7 @@ classdef Simulator < handle
     
     methods % constructor
         function sim = Simulator(model)
-            if nargin > 1
+            if nargin > 0
                 Initialization(sim, model);
             end
         end
@@ -34,8 +34,8 @@ classdef Simulator < handle
             % hip and knee cloud in local frame
             sim.hipCloud = [zeros(1, length(-sim.model.hipLinkLength:space:0));
                         -sim.model.hipLinkLength:space:0];
-            sim.kneeCloud = [zeros(1, length(-sim.model.knee:space:0));
-                        -sim.model.knee:space:0];
+            sim.kneeCloud = [zeros(1, length(-sim.model.kneeLinkLength:space:0));
+                        -sim.model.kneeLinkLength:space:0];
         end
     end
     
@@ -44,8 +44,8 @@ classdef Simulator < handle
             sim.controller = Controller;
         end
         
-        function run_Controller(sim)
-            sim.controller.run();
+        function u = run_Controller(sim, x, k, currentPhaseIdx)
+            u = sim.controller.run(x, k, currentPhaseIdx);
         end
     end
     
@@ -53,16 +53,16 @@ classdef Simulator < handle
         function collision = selfCollision(sim, x)
             collision = 0;
             q = x(1:7,1);            
-                                    
+            thresh = 0.003;                        
             for leg = 1:2
                 if leg == 1
                     otherLeg = 2;
                 else
                     otherLeg = 1;
                 end
-                knee_Body = sim.model.getPositionBodyFrame(q,2*leg+1,[0 0]);
+                knee_Body = sim.model.getPositionBodyFrame(q,2*leg+1,[0 0]');
                 % check knee collision with body
-                [dist, ~] = pointToCloud(knee_Body, simbodyCloud);
+                [dist, ~] = pointToCloud(knee_Body, sim.bodyCloud);
                 if dist < thresh
                     collision = 1;
                     return
@@ -80,7 +80,7 @@ classdef Simulator < handle
                     return
                 end
                 % check foot collision with body                              
-                foot_Body = sim.model.getPositionBodyFrame(q,2*leg+1,[0, -sim.model.kneeLinkLength]);
+                foot_Body = sim.model.getPositionBodyFrame(q,2*leg+1,[0, -sim.model.kneeLinkLength]');
                 [dist, ~] = pointToCloud(foot_Body, sim.bodyCloud);
                 if dist < thresh
                     collision = 1;
@@ -168,7 +168,7 @@ classdef Simulator < handle
         
         function collisionList = groundCollision(sim, x)
             q = x(1:7, 1);
-            thresh = 0.001;
+            thresh = 0.003;
             collisionList = [];
             bodyLength = sim.model.bodyLength;
             bodyHeight = sim.model.bodyHeight;
@@ -213,6 +213,8 @@ classdef Simulator < handle
     methods
         function [X, predidx] = run(sim, x0, delay)
             currentMode = sim.scheduledSeq(1);
+            nextMode = sim.scheduledSeq(2);
+            pidx = 1;
             % preallocat enough memomery for X to save time
             X = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
             X(:,1) = x0;
@@ -220,44 +222,49 @@ classdef Simulator < handle
             while 1
                 xk = X(:, k);
                 % selft-collision detection
-                if sim.selfCollision(x)
+                if sim.selfCollision(xk)
                     return
                 end
                 % falldown detection
-                if sim.fallDectection(x,k,currentMode)
+                if sim.fallDectection(xk,k,currentMode)
                     return
                 end
                 % joint limit detection
-                if sim.jointLimitViolation(x)
+                if sim.jointLimitViolation(xk)
                     return
                 end
-                % touchdown detection
-                TD = sim.touchDown(x,k,currentMode);
-                if any(TD)
-                    break;
-                end            
+                % touchdown detection during flight phase
+                if any(currentMode == [2 4])
+                    TD = sim.touchDown(xk,k,currentMode);
+                    if any(TD)
+                        break;
+                    end
+                else
+                    if k == sim.controlHorizon + 1
+                        break;
+                    end
+                end                        
                 
                 if k <= sim.controlHorizon
-                    uk = sim.run_Controller(xk, k, currentMode);
+                    uk = sim.run_Controller(xk, k, pidx);
                 else % execture last control command for late contact
-                    uk = sim.run_Controller(xk, sim.controlHorizon, currentMode);
+                    uk = sim.run_Controller(xk, sim.controlHorizon, pidx);
                 end                
                 [xk_next, y] = sim.model.dynamics(xk, uk, currentMode);
                 X(:, k+1) = xk_next;
                 k = k + 1;
             end
-            if any(TD)
-                [xk_next,~] = sim.model.resetmap(xk, currentMode);  
-                X(:, k+1) = xk_next;
-                k = k + 1;
-                predidx = k;
-            end
+            [xk_next,~] = sim.model.resetmap(xk, currentMode, nextMode);
+            X(:, k+1) = xk_next;
+            k = k + 1;
+            predidx = k;
             
             % rollout in delay time            
-            currentMode = sim.scheduledSeq(2); % shift the current mode            
+            currentMode = nextMode; % shift the current mode   
+            pidx = 2;
             for kdelay = 1:delay-1
                 xk = X(:,k);
-                uk = sim.run_Controller(xk, kdelay, currentMode);
+                uk = sim.run_Controller(xk, kdelay, pidx);
                 [xk_next, y] = sim.model.dynamics(xk, uk, currentMode);
                 X(:,k+1) = xk_next;
                 k = k + 1;
@@ -265,6 +272,7 @@ classdef Simulator < handle
             delayidx = k;
             X(:,delayidx+1:end)=[]; % remove surplus preallocated memory
             X(:,1) = []; % remove the initial condition
+            predidx = predidx - 1;
         end
     end
     
@@ -291,9 +299,9 @@ classdef Simulator < handle
             % re-calculate scheduced horizon to account for delay of last
             % phase
             sim.scheduledHorizons(1) = sim.scheduledHorizons(1)-lastDelay;
-            if sim.contrlHorizon > phaseHorizons(1)-1
-                sim.contrlHorizon = phaseHorizons(1)-1;
-                fprintf('control horizon is restrcited to %d \n', sim.contrlHorizon);
+            if sim.controlHorizon > sim.scheduledHorizons(1)-1
+                sim.controlHorizon = sim.scheduledHorizons(1)-1;
+                fprintf('control horizon is restrcited to %d \n', sim.controlHorizon);
             end
         end
     end
