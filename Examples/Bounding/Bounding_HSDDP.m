@@ -76,6 +76,12 @@ currentDelay = 0;
 x0_opt = x0;
 x0_sim = x0;
 X = [];
+
+% Disturbance information
+disturbInfo.start = 30;
+disturbInfo.end = 60;
+disturbInfo.active = 0;
+
 for i = 1:2
     controller.runHSDDP(x0_opt, options);
     
@@ -89,10 +95,15 @@ for i = 1:2
     % Recalculate the phase horizon considering the effect of last delay
     sim.recalcHorizonforDelay(lastDelay);
     
+    % Activate disturbance at second flight
+    if i == 4
+        disturbInfo.active = 1;
+    end
+    
     % Run simulator
     % predidx indicates when delay = 0. This should be used as the initial
-    % condition for the next MHPC planning.
-    [Xphase, predidx] = sim.run(x0_sim,currentDelay);
+    % condition for the next MHPC planning.    
+    [Xphase, predidx] = sim.run(x0_sim,currentDelay, disturbInfo);
     
     X = [X, Xphase];
     

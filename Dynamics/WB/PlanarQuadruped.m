@@ -102,9 +102,15 @@ classdef PlanarQuadruped < BaseDyn
     end
     
     methods
-        function [x_next, y] = dynamics(Quad,x,u,mode)
+        function [x_next, y] = dynamics(Quad,x,u,mode,Push, PushLoc, Pushlinkidx)
             q   = x(1:7, 1);
             qd  = x(8:14,1);
+            F_ext = 0;
+            J_ext = 0;
+            if (nargin > 4) && ~isempty(Push) && ~isempty(PushLoc) && ~isempty(Pushlinkidx)
+                F_ext = Push;
+                [J_ext, ~] = Quad.getJacobian(x,Pushlinkidx,PushLoc);
+            end
             
             % Get inertia matrix, and coriolis,centrifugal,gravity marix
             [H, C] = HandC(Quad.model, q, qd);                        
@@ -115,10 +121,10 @@ classdef PlanarQuadruped < BaseDyn
             % assemble KKT matrix
             if isempty(Jd)
                 K = H;
-                b = Quad.S*u - C;
+                b = Quad.S*u - C + J_ext'*F_ext;
             else
                 K = [H, -J';J, zeros(size(J,1),size(J,1))];
-                b = [Quad.S*u - C; -Jd*qd];
+                b = [Quad.S*u - C + J_ext'*F_ext; -Jd*qd];
             end
                                     
             % KKT inverse

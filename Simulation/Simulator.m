@@ -211,10 +211,13 @@ classdef Simulator < handle
     end
     
     methods
-        function [X, predidx] = run(sim, x0, delay)
+        function [X, predidx] = run(sim, x0, delay, disturbInfo)
             currentMode = sim.scheduledSeq(1);
             nextMode = sim.scheduledSeq(2);
             pidx = 1;
+            push = [];
+            pushLoc = [];
+            pushlinkidx = [];
             % preallocat enough memomery for X to save time
             X = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
             X(:,1) = x0;
@@ -249,8 +252,14 @@ classdef Simulator < handle
                     uk = sim.run_Controller(xk, k, pidx);
                 else % execture last control command for late contact
                     uk = sim.run_Controller(xk, sim.controlHorizon, pidx);
-                end                
-                [xk_next, y] = sim.model.dynamics(xk, uk, currentMode);
+                end             
+                
+                if disturbInfo.active && (k >= disturbInfo.start) && (k<=disturbInfo.end)
+                    pushlinkidx = 1;
+                    pushLoc = datasample(sim.bodyCloud,1,2); % random sample from body cloud
+                    push = disturbInfo.magtitude*[cos(randn);sin(randn)];
+                end
+                [xk_next, y] = sim.model.dynamics(xk, uk, currentMode, push, pushLoc, pushlinkidx);
                 X(:, k+1) = xk_next;
                 k = k + 1;
             end
