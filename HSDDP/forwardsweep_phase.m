@@ -1,8 +1,10 @@
-function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
+function [h, success] = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
     % T: phase trajectory
     % AL_ReB_params: AL and ReB params for T
+    success = 1;
     N_horizon = length(T.Ubar);
     T.V = 0;
+    h = 0;
     for k = 1:N_horizon - 1
         ubar    = T.Ubar(:,k);
         xbar    = T.Xbar(:,k);
@@ -14,7 +16,11 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
         else
             u       = ubar;
         end
-%         assert(~any(isnan(u)), 'u cannot be nan!');
+        if any(isnan(u))
+            success = 0;
+            break;
+        end
+        
         [x_next, y] = Phase.dynamics(x, u);
 
         % Running cost info (lInfo_k structure)
@@ -54,8 +60,6 @@ function h = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options)
         
         % Update terminal cost if Augmented Lagrangian is active
         phiInfo = update_terminalInfo_with_AL(h, hx, hxx, phiInfo,AL_ReB_params.sigma, AL_ReB_params.lambda);
-    else
-        h = 0;
     end
     
     % Buffer

@@ -1,7 +1,7 @@
 classdef RobotController < handle
     
     methods (Abstract)
-       Initialization(RobotController)
+       initialization(RobotController)
        run(RobotController)
     end
     

@@ -39,10 +39,11 @@ classdef HybridSystemsDDP < handle
     end
     
     methods
-        function forwardsweep(DDP, eps, AL_ReB_params, options)
+        function success = forwardsweep(DDP, eps, AL_ReB_params, options)
             DDP.V = 0;
             DDP.hnorm = 0;
             hnormsqure = 0;
+            success = 1;
             Footholds = [];
             for idx = 1:DDP.n_Phases                
                 if idx == 1 
@@ -72,7 +73,10 @@ classdef HybridSystemsDDP < handle
                 if strcmp(DDP.Phases(idx).hierarchy, 'simple')
                     DDP.Phases(idx).set_model_params(Footholds(:,idx - (firstSimple-1)));
                 end
-                DDP.h{idx} = forwardsweep_phase(DDP.Phases(idx), DDP.hybridT(idx), eps, AL_ReB_params(idx), options);
+                [DDP.h{idx}, success] = forwardsweep_phase(DDP.Phases(idx), DDP.hybridT(idx), eps, AL_ReB_params(idx), options);
+                if ~success
+                    break;
+                end
                 hnormsqure = hnormsqure + DDP.h{idx}*DDP.h{idx}';
                 DDP.V = DDP.V + DDP.hybridT(idx).V;
             end 
@@ -84,14 +88,14 @@ classdef HybridSystemsDDP < handle
             Vprev = DDP.V;
             
             while eps > 1e-10                                                                 
-                 DDP.forwardsweep(eps, AL_ReB_params, options);
+                 success = DDP.forwardsweep(eps, AL_ReB_params, options);
                  
                  if options.Debug
                     fprintf('\t eps=%.3e \t cost change=%.3e \t min=%.3e\n',eps, DDP.V-Vprev, options.gamma* eps*(1-eps/2)*DDP.dV );
                  end
                  
                  % check if V is small enough to accept the step
-                 if DDP.V < Vprev + options.gamma*eps*(1-eps/2)*DDP.dV
+                 if success && (DDP.V < Vprev + options.gamma*eps*(1-eps/2)*DDP.dV)
                      % if so, break
                      break;
                  end

@@ -2,8 +2,11 @@ classdef Gait < handle
     properties
         name
         gait
-        bounding_gait = [1,2,3,4]; % one bounding gait cycle with unique phase index
-        
+        basicTimings
+        bounding_gait = [1,2,3,4] % one bounding gait cycle with unique phase index                
+    end
+    
+    properties % left for future use
         gait_Enabled
         
         period_time
@@ -24,7 +27,6 @@ classdef Gait < handle
         touchdownScheduled
         liftoffScheduled
     end
-    
     methods
         function G = Gait(name)
             G.name = name;
@@ -41,6 +43,14 @@ classdef Gait < handle
             end
         end
         
+        function timeSeq = get_timeSeq(G, currentPhase, n_Phases)
+            timeSeq = zeros(1, n_Phases);
+            phaseSeq = G.get_gaitSeq(currentPhase, n_Phases);
+            for pidx = 1:n_Phases
+                timeSeq(pidx) = G.basicTimings(phaseSeq(pidx)==G.gait);
+            end
+        end
+        
         function nextPhase = get_nextPhase(G, currentPhase)
             currentIdx = find(G.gait == currentPhase);
             if currentIdx == length(G.gait)
@@ -48,6 +58,10 @@ classdef Gait < handle
             else
                 nextPhase = G.gait(currentIdx+1);
             end
+        end
+        
+        function setBasicTimings(G, timings)
+            G.basicTimings = timings;
         end
         
         function define_your_gait(G, yourGait)
