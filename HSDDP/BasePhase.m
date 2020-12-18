@@ -1,6 +1,7 @@
 classdef BasePhase < matlab.mixin.Copyable
     properties    
         model
+        cost
         mode {mustBePositive, mustBeInteger} = 1;
         next_mode {mustBePositive, mustBeInteger} = 2;
         AL_ReB_params %(penalty, Lagrange, relaxation, ReB weighting)
@@ -29,21 +30,22 @@ classdef BasePhase < matlab.mixin.Copyable
     end
     
     methods % Constructor        
-        function Ph = BasePhase(model, mode, hierarchy)            
+        function Ph = BasePhase(model, mode, cost, hierarchy)            
            if nargin > 0
-               Ph.Initialization(model, mode, hierarchy);
+               Ph.Initialization(model, mode, cost, hierarchy);
            end           
         end
         
-        function Initialization(Ph, model, mode, hierarchy)
+        function Initialization(Ph, model, mode, cost, hierarchy)
             Ph.model = model;
             Ph.mode  = mode;
+            Ph.cost  = cost;
+            Ph.hierarchy = hierarchy;
             Ph.Q = eye(model.xsize);
             Ph.R = eye(model.usize);
             Ph.S = zeros(model.ysize);
             Ph.Qf = 50*eye(model.xsize);
-            Ph.dt = model.dt;
-            Ph.hierarchy = hierarchy;
+            Ph.dt = model.dt;            
         end
     end
     
@@ -96,12 +98,12 @@ classdef BasePhase < matlab.mixin.Copyable
                 yd = Ph.Td.y(:,k);
             end
             
-            lInfo = running_cost_info(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt);
+            lInfo = Ph.cost.running_cost_Info(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt);
         end
         
         function phiInfo     = terminal_cost_Info(Ph, x)
             xd = Ph.Td.x(:,end);
-            phiInfo = terminal_cost_info(x,xd,Ph.Qf);
+            phiInfo = Ph.cost.terminal_cost_Info(x,xd,Ph.Qf);
         end
     end
     

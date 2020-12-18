@@ -1,29 +1,32 @@
 function [WBPhases, FBPhases] = ConstructParentPhases(WBMC, FBMC, params)
 % This function creates four base phases for each model
 % 1-> BS 2->FL1 3->FS 4->FL2
+BoundConstraint = constraint(WBMC, FBMC);
+BoundCost       = cost(WBMC, FBMC);
 
 % Initialize WBPhases and FBPhases
 for mode = 1:4
-    WBPhases(mode) = BasePhase(WBMC, mode, 'full');
-    FBPhases(mode) = BasePhase(FBMC, mode, 'simple');
+    WBPhases(mode) = BasePhase(WBMC, mode, BoundCost, 'full');
+    FBPhases(mode) = BasePhase(FBMC, mode, BoundCost, 'simple');
 end
+
 
 %% Set constraints
 % The terminal constraint and ineq constraint are inactive by default
-WBPhases(1).set_ineq_constraint(@WB_ineq_constr_Info);
+WBPhases(1).set_ineq_constraint(@BoundConstraint.WB_bounding_ineq_constr);
 WBPhases(1).set_constraint_active('ineq'); 
 
-WBPhases(2).set_terminal_constraint(@WB_terminal_constr_Info);
+WBPhases(2).set_terminal_constraint(@BoundConstraint.WB_bounding_tm_constr);
 WBPhases(2).set_constraint_active('terminal');
-WBPhases(2).set_ineq_constraint(@WB_ineq_constr_Info);
+WBPhases(2).set_ineq_constraint(@BoundConstraint.WB_bounding_ineq_constr);
 WBPhases(2).set_constraint_active('ineq');
 
-WBPhases(3).set_ineq_constraint(@WB_ineq_constr_Info);
+WBPhases(3).set_ineq_constraint(@BoundConstraint.WB_bounding_ineq_constr);
 WBPhases(3).set_constraint_active('ineq');
 
-WBPhases(4).set_terminal_constraint(@WB_terminal_constr_Info);
+WBPhases(4).set_terminal_constraint(@BoundConstraint.WB_bounding_tm_constr);
 WBPhases(4).set_constraint_active('terminal');
-WBPhases(4).set_ineq_constraint(@WB_ineq_constr_Info);
+WBPhases(4).set_ineq_constraint(@BoundConstraint.WB_bounding_ineq_constr);
 WBPhases(4).set_constraint_active('ineq');
 
 %% set quadratic cost weightings
@@ -136,21 +139,21 @@ WB_AL_ReB_params = repmat(struct('sigma',[],...
 % Stance phases do not have terminal constraint. AL params are empty                          
 % Ineq cq, cu, and cy
 WB_AL_ReB_params(1).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
-WB_AL_ReB_params(1).eps_ReB = [1e-5*ones(1,2*4),  0*ones(1,2*4), 1e-5*ones(1,3)];
+WB_AL_ReB_params(1).eps_ReB = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3)];
 
 WB_AL_ReB_params(3).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
-WB_AL_ReB_params(3).eps_ReB = [1e-5*ones(1,2*4),  0*ones(1,2*4), 1e-5*ones(1,3)];
+WB_AL_ReB_params(3).eps_ReB = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3)];
 
 % Flight phase needs terminal constraint at TD
 WB_AL_ReB_params(2).sigma   = 5;
 WB_AL_ReB_params(2).lambda  = 0;
 WB_AL_ReB_params(2).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
-WB_AL_ReB_params(2).eps_ReB = [1e-5*ones(1,2*4),0*ones(1,2*4)];
+WB_AL_ReB_params(2).eps_ReB = [0.01*ones(1,2*4),0*ones(1,2*4)];
 
 WB_AL_ReB_params(4).sigma   = 5;
 WB_AL_ReB_params(4).lambda  = 0;
 WB_AL_ReB_params(4).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
-WB_AL_ReB_params(4).eps_ReB = [1e-5*ones(1,2*4),0*ones(1,2*4)];
+WB_AL_ReB_params(4).eps_ReB = [0.01*ones(1,2*4),0*ones(1,2*4)];
 
 
 for mode = 1:4
