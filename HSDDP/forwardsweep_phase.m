@@ -5,6 +5,7 @@ function [h, success] = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options
     N_horizon = length(T.Ubar);
     T.V = 0;
     h = 0;
+    upre = T.Ubar(:,1);
     for k = 1:N_horizon - 1
         ubar    = T.Ubar(:,k);
         xbar    = T.Xbar(:,k);
@@ -34,14 +35,17 @@ function [h, success] = forwardsweep_phase(Phase, T, eps, AL_ReB_params, options
 
         % Modify lInfo if Reduced Barrier is active
         if options.ReB_active && Phase.ineqconstr_active
-            lInfo_k = update_lInfo_with_ReB(lInfo_k,ineqInfo_k, AL_ReB_params.delta, AL_ReB_params.eps_ReB);
+            lInfo_k = update_lInfo_with_ReB(lInfo_k,ineqInfo_k, Phase.dt, AL_ReB_params.delta, AL_ReB_params.eps_ReB);
         end
 
         % Modify lInfo if smoothness penalty is active
-%         if options.smooth_active
-%             lInfo_k = update_lInfo_with_Smooth(lInfo_k,ineq_Info_k,AL_ReB_params.eps_smooth);
-%         end
-
+        if options.smooth_active
+            lInfo_k = update_lInfo_with_Smooth(lInfo_k,u,upre,Phase.dt,AL_ReB_params.eps_smooth);
+        end
+        
+        % update upre
+        upre = u;
+        
         % Update buffer
         T.X(:,k+1)      = x_next;
         T.Y(:,k)        = y;

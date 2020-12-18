@@ -29,7 +29,7 @@ classdef mhpcControllerNew < RobotController
             C.FBModel = FBModel;
             C.gait = gait;                       
             C.problem_data = Problem_data;
-            [C.WBPhases, C.FBPhases] = ConstructParentPhases(WBModel, FBModel,Problem_data);
+            [C.WBPhases, C.FBPhases] = ConstructParentPhasesJumping(WBModel, FBModel,Problem_data);
         end
         
         function initializeHSDDP(C)

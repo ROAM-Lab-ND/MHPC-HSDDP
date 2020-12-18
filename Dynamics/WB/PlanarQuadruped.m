@@ -459,9 +459,10 @@ classdef PlanarQuadruped < BaseDyn
                 Jdx  = [Jdx; Jdx_cidx];
             end
         end
-        
+                
         function Initialize_model(Quad,varargin)
             % do nothing for WB model
         end
     end
+       
 end

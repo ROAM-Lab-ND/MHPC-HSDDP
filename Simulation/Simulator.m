@@ -61,12 +61,7 @@ classdef Simulator < handle
                     otherLeg = 1;
                 end
                 knee_Body = sim.model.getPositionBodyFrame(q,2*leg+1,[0 0]');
-                % check knee collision with body
-                [dist, ~] = pointToCloud(knee_Body, sim.bodyCloud);
-                if dist < thresh
-                    collision = 1;
-                    return
-                end
+                
                 % check knee collision with hip link of the other leg
                 [dist, ~] = pointToCloud(knee_Body, sim.model.getPositionBodyFrame(q, 2*otherLeg, sim.hipCloud));
                 if dist < thresh
@@ -211,31 +206,35 @@ classdef Simulator < handle
     end
     
     methods
-        function [X, predidx] = run(sim, x0, delay, disturbInfo)
+        function [X, predidx, collision] = run(sim, x0, delay, disturbInfo)
             currentMode = sim.scheduledSeq(1);
             nextMode = sim.scheduledSeq(2);
             pidx = 1;
             push = [];
             pushLoc = [];
             pushlinkidx = [];
+            collision = 0;
             % preallocat enough memomery for X to save time
             X = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
             X(:,1) = x0;
             k = 1;
             while 1
                 xk = X(:, k);
-                % selft-collision detection
+%                 selft-collision detection
                 if sim.selfCollision(xk)
+                    collision = 1;                   
                     return
                 end
                 % falldown detection
-                if sim.fallDectection(xk,k,currentMode)
-                    return
-                end
-                % joint limit detection
-                if sim.jointLimitViolation(xk)
-                    return
-                end
+%                 if sim.fallDectection(xk,k,currentMode)
+%                     collision = 1; 
+%                     return
+%                 end
+% %                 joint limit detection
+%                 if sim.jointLimitViolation(xk)
+%                     collision = 1; 
+%                     return
+%                 end
                 % touchdown detection during flight phase
                 if any(currentMode == [2 4])
                     TD = sim.touchDown(xk,k,currentMode);
@@ -257,11 +256,12 @@ classdef Simulator < handle
                 if disturbInfo.active && (k >= disturbInfo.start) && (k<=disturbInfo.end)
                     pushlinkidx = 1;
                     pushLoc = datasample(sim.bodyCloud,1,2); % random sample from body cloud
-                    push = disturbInfo.magtitude*[cos(randn);sin(randn)];
+                    push = disturbInfo.magnitude*[cos(randn);sin(randn)];
                 end
                 [xk_next, y] = sim.model.dynamics(xk, uk, currentMode, push, pushLoc, pushlinkidx);
                 X(:, k+1) = xk_next;
                 k = k + 1;
+                predidx = k - 1;
             end
             [xk_next,~] = sim.model.resetmap(xk, currentMode, nextMode);
             X(:, k+1) = xk_next;

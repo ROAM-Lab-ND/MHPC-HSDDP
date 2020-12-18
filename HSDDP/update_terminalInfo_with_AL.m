@@ -20,7 +20,7 @@ for i = 1:length(h)
 end
 
 % Update terminal cost
-phiInfo.phi     = phiInfo.phi   + 50*cost;          
-phiInfo.phix    = phiInfo.phix  + 50*G;
-phiInfo.phixx   = phiInfo.phixx + 50*H;
+phiInfo.phi     = phiInfo.phi   + cost;          
+phiInfo.phix    = phiInfo.phix  + G;
+phiInfo.phixx   = phiInfo.phixx + H;
 end

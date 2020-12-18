@@ -78,6 +78,7 @@ x0_sim = x0;
 X = [];
 
 % Disturbance information
+% Disturbance start at 30th time step and ends at 60th time step
 disturbInfo.start = 30;
 disturbInfo.end = 60;
 disturbInfo.active = 0;
@@ -126,8 +127,8 @@ end
 % construct graphics and visualize data
 graphicsOptions.body_active = 1;
 graphicsOptions.leg_active = 1;
-graphicsOptions.push_active = 1;
-graphicsOptions.GRF_acitive = 1;
+graphicsOptions.push_active = 0;
+graphicsOptions.GRF_acitive = 0;
 
 graphics = Graphics(get3DMCParams());
 graphics.process2DData(X);
