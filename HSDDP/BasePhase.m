@@ -106,9 +106,9 @@ classdef BasePhase < matlab.mixin.Copyable
             xd = Ph.Td.x(:,end);
             scale = 1;
             if Ph.lastPhase
-                scale = 10;
+                scale = 5;
             end
-            phiInfo = Ph.terminal_cost_handle(x,xd,10*Ph.Qf);
+            phiInfo = Ph.terminal_cost_handle(x,xd,scale*Ph.Qf);
         end
     end
     
