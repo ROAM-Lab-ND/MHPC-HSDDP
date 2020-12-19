@@ -14,6 +14,7 @@ classdef BasePhase < matlab.mixin.Copyable
         model_transition_flag = 0;
         Pr
         hierarchy
+        lastPhase = 0;
     end
     
     properties % weightings of quadratic cost
@@ -103,7 +104,11 @@ classdef BasePhase < matlab.mixin.Copyable
         
         function phiInfo     = terminal_cost_Info(Ph, x)
             xd = Ph.Td.x(:,end);
-            phiInfo = Ph.terminal_cost_handle(x,xd,Ph.Qf);
+            scale = 1;
+            if Ph.lastPhase
+                scale = 10;
+            end
+            phiInfo = Ph.terminal_cost_handle(x,xd,10*Ph.Qf);
         end
     end
     
