@@ -74,13 +74,13 @@ classdef Simulator < handle
                     collision = 1;
                     return
                 end
-                % check foot collision with body                              
+%                 % check foot collision with body                              
                 foot_Body = sim.model.getPositionBodyFrame(q,2*leg+1,[0, -sim.model.kneeLinkLength]');
-                [dist, ~] = pointToCloud(foot_Body, sim.bodyCloud);
-                if dist < thresh
-                    collision = 1;
-                    return
-                end
+%                 [dist, ~] = pointToCloud(foot_Body, sim.bodyCloud);
+%                 if dist < thresh
+%                     collision = 1;
+%                     return
+%                 end
                 % check foot collision with hip link of the other leg
                 [dist, ~] = pointToCloud(foot_Body, sim.model.getPositionBodyFrame(q, 2*otherLeg, sim.hipCloud));
                 if dist < thresh

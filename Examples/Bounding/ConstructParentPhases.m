@@ -6,8 +6,8 @@ BoundCost       = cost(WBMC, FBMC);
 
 % Initialize WBPhases and FBPhases
 for mode = 1:4
-    WBPhases(mode) = BasePhase(WBMC, mode, BoundCost, 'full');
-    FBPhases(mode) = BasePhase(FBMC, mode, BoundCost, 'simple');
+    WBPhases(mode) = BasePhase(WBMC, mode, 'full');
+    FBPhases(mode) = BasePhase(FBMC, mode, 'simple');
 end
 
 
@@ -92,7 +92,12 @@ Sfb(:,:,4)  = zeros(FBMC.ysize);
 Qfbf(:,:,4) = 100*diag([0,20,8,10,1,0.01]); 
 
 for mode = 1:4
+    WBPhases(mode).set_running_cost(@BoundCost.running_cost_Info);
+    WBPhases(mode).set_terminal_cost(@BoundCost.jump_terminal_cost_Info);
     WBPhases(mode).set_weightings(Qwb(:,:,mode),Rwb(:,:,mode),Swb(:,:,mode),Qwbf(:,:,mode));
+    
+    FBPhases(mode).set_running_cost(@BoundCost.running_cost_Info);
+    FBPhases(mode).set_terminal_cost(@BoundCost.terminal_cost_Info);
     FBPhases(mode).set_weightings(Qfb(:,:,mode),Rfb(:,:,mode),Sfb(:,:,mode),Qfbf(:,:,mode));
 end
 

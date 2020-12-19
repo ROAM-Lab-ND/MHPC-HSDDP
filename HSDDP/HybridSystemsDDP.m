@@ -273,7 +273,7 @@ classdef HybridSystemsDDP < handle
 %                 end
 %                 params(i).delta = options.beta_relax*params(i).delta;
 %                 params(i).delta(params(i).delta<1e-3) = 1e-3;
-                params(i).eps_ReB = 6*params(i).eps_ReB;
+                params(i).eps_ReB = 8*params(i).eps_ReB;
             end
         end
     end           

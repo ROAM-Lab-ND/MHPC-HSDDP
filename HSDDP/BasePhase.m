@@ -1,7 +1,6 @@
 classdef BasePhase < matlab.mixin.Copyable
     properties    
         model
-        cost
         mode {mustBePositive, mustBeInteger} = 1;
         next_mode {mustBePositive, mustBeInteger} = 2;
         AL_ReB_params %(penalty, Lagrange, relaxation, ReB weighting)
@@ -27,19 +26,20 @@ classdef BasePhase < matlab.mixin.Copyable
     properties
         termconstr_handle
         ineqconstr_handle
+        running_cost_handle
+        terminal_cost_handle
     end
     
     methods % Constructor        
-        function Ph = BasePhase(model, mode, cost, hierarchy)            
+        function Ph = BasePhase(model, mode, hierarchy)            
            if nargin > 0
-               Ph.Initialization(model, mode, cost, hierarchy);
+               Ph.Initialization(model, mode, hierarchy);
            end           
         end
         
-        function Initialization(Ph, model, mode, cost, hierarchy)
+        function Initialization(Ph, model, mode, hierarchy)
             Ph.model = model;
             Ph.mode  = mode;
-            Ph.cost  = cost;
             Ph.hierarchy = hierarchy;
             Ph.Q = eye(model.xsize);
             Ph.R = eye(model.usize);
@@ -98,12 +98,12 @@ classdef BasePhase < matlab.mixin.Copyable
                 yd = Ph.Td.y(:,k);
             end
             
-            lInfo = Ph.cost.running_cost_Info(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt);
+            lInfo = Ph.running_cost_handle(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt);
         end
         
         function phiInfo     = terminal_cost_Info(Ph, x)
             xd = Ph.Td.x(:,end);
-            phiInfo = Ph.cost.terminal_cost_Info(x,xd,Ph.Qf);
+            phiInfo = Ph.terminal_cost_handle(x,xd,Ph.Qf);
         end
     end
     
@@ -151,6 +151,14 @@ classdef BasePhase < matlab.mixin.Copyable
         
         function set_ineq_constraint(Ph, ineqconstrFunc)
             Ph.ineqconstr_handle = ineqconstrFunc;
+        end
+        
+        function set_running_cost(Ph, runningCostFunc)
+            Ph.running_cost_handle = runningCostFunc;
+        end
+        
+        function set_terminal_cost(Ph,terminalCostFunc)
+            Ph.terminal_cost_handle = terminalCostFunc;
         end
         
         function set_reference(Ph, Tdesire)

@@ -36,18 +36,18 @@ classdef cost < handle
             % penalize distance from foot to gap function
             link = [3, 5];
             for idx = 1:2
-                p = cs.WBModel.getPosition(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
-                [J,~] = cs.WBModel.getJacobian(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
-                [Jx,~] = cs.WBModel.getJacobianPar(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
+                p = co.WBModel.getPosition(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
+                [J,~] = co.WBModel.getJacobian(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
+                [Jx,~] = co.WBModel.getJacobianPar(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
                 [g,dg,ddg] = gapFunc(p(1));
                 d = p(2) - g;
-                dx = [J(2,:), zeros(1,cs.WBModel.qsize)] - [dg*J(1,:),zeros(1,cs.WBModel.qsize)];
-                dxx = [squeeze(Jx(2,:,:));zeros(cs.WBModel.qsize, cs.WBModel.xsize)] - ...
-                    [squeeze(Jx(1,:,:));zeros(cs.WBModel.qsize, cs.WBModel.xsize)]*dg -...
-                    blkdiag(J(1,:)'*J(1,:),zeros(cs.WBModel.qsize))*ddg;
-                a = -10;
+                dx = [J(2,:), zeros(1,co.WBModel.qsize)] - [dg*J(1,:),zeros(1,co.WBModel.qsize)];
+                dxx = [squeeze(Jx(2,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)] - ...
+                    [squeeze(Jx(1,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)]*dg -...
+                    blkdiag(J(1,:)'*J(1,:),zeros(co.WBModel.qsize))*ddg;
+                a = -50;
                 phi = exp(a*d);
-                phix = a*phi*dx;
+                phix = a*phi*dx';
                 phixx = a*phi*dxx + a^2*phi*(dx'*dx);
                 
                 phiInfo = co.add_terminal_cost(phiInfo,phi,phix,phixx);
