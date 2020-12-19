@@ -85,8 +85,8 @@ classdef mhpcControllerNew < RobotController
             C.HSDDP.Phases(end).lastPhase = 1;
             
             % update desired terminal state at each phase
-            for idx = 1:options.n_Phases
-                C.HSDDP.Phases(idx).Td(1,end) =  options.vd*sum(options.t_horizons(1:idx));
+            for idx = 1:C.HSDDP.n_Phases
+                C.HSDDP.Phases(idx).Td.x(1,end) =  x0(1) + C.problem_data.vd*sum(C.problem_data.t_horizons(1:idx));
             end
             
             [C.xopt, C.uopt, C.Kopt] = C.HSDDP.Run(options);
