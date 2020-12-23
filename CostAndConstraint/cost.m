@@ -14,14 +14,14 @@ classdef cost < handle
     methods
         function lInfo = running_cost_Info(co,x,xd,u,ud,y,yd,Q,R,S,dt)
             lInfo = lInfoStruct(length(x),length(u),length(y));
-            lInfo.l     = dt*1/2*((x-xd)'*Q*(x-xd) + (u-ud)'*R*(u-ud) + (y-yd)'*S*(y-yd));
-            lInfo.lx    = dt*Q*(x-xd); % column vec
-            lInfo.lu    = dt*R*(u-ud);
-            lInfo.ly    = dt*S*(y-yd);
-            lInfo.lxx   = dt*Q;
+            lInfo.l     = 2*dt*1/2*((x-xd)'*Q*(x-xd) + (u-ud)'*R*(u-ud) + (y-yd)'*S*(y-yd));
+            lInfo.lx    = 2*dt*Q*(x-xd); % column vec
+            lInfo.lu    = 2*dt*R*(u-ud);
+            lInfo.ly    = 2*dt*S*(y-yd);
+            lInfo.lxx   = 2*dt*Q;
             lInfo.lux   = zeros(length(u),length(x));
-            lInfo.luu   = dt*R;
-            lInfo.lyy   = dt*S;
+            lInfo.luu   = 2*dt*R;
+            lInfo.lyy   = 2*dt*S;
         end
         
         function phiInfo = terminal_cost_Info(co,x,xd,Q)
@@ -45,7 +45,7 @@ classdef cost < handle
                 dxx = [squeeze(Jx(2,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)] - ...
                     [squeeze(Jx(1,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)]*dg -...
                     blkdiag(J(1,:)'*J(1,:),zeros(co.WBModel.qsize))*ddg;
-                a = -50;
+                a = -40;
                 phi = exp(a*d);
                 phix = a*phi*dx';
                 phixx = a*phi*dxx + a^2*phi*(dx'*dx);

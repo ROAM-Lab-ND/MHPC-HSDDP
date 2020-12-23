@@ -106,6 +106,7 @@ classdef constraint < handle
             cy = zeros(1, cs.WBModel.ysize);
             cuu = zeros(cs.WBModel.usize);
             cyy = zeros(cs.WBModel.ysize);
+%             cxx = zeros(cs.WBModel.xsize);
                 
             link = [3, 5];
             for idx = 1:2

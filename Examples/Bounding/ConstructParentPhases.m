@@ -43,28 +43,28 @@ Qfbf    = zeros(FBMC.xsize, FBMC.xsize, 4);
 
 % weightings for WB (whole-body) model
 % BS
-Qwb(:,:,1)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
 Rwb(:,:,1)      = diag([5,5,1,1]);
+Qwb(:,:,1)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
 Swb(3:4,3:4,1)  = 0.3*eye(2);
-Qwbf(:,:,1)     = 100*diag([10,20,8,3,3,3,3, 10,2,0.01,5,5,0.01,0.01]);  
+Qwbf(:,:,1)     = 100*diag([0,20,8,3,3,3,3,  10,2,0.01,5,5,0.01,0.01]);  
 
 % FL1
-Qwb(:,:,2)      = 0.01*diag([0,10,5,2,2,2,2,8,1,.01,5,5,5,5]); 
 Rwb(:,:,2)      = eye(WBMC.usize);
+Qwb(:,:,2)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]); 
 Swb(:,:,2)      = zeros(WBMC.ysize);
-Qwbf(:,:,2)     = 100*diag([10,20,8,3,3,3,3,10,2,0.01,5,5,5,5]); 
+Qwbf(:,:,2)     = 100*diag([0,20,8,3,3,3,3,  10,2,0.01,5,5,5,5]); 
 
 % FS
-Qwb(:,:,3)      = 0.01*diag([0,10,5,2,2,2,2,8,1,.01,5,5,5,5]);
 Rwb(:,:,3)      = diag([1,1,5,5]);
+Qwb(:,:,3)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
 Swb(1:2,1:2,3)  = 0.15*eye(2);
-Qwbf(:,:,3)     = 100*diag([10,20,8,3,3,3,3, 10,2,0.01,0.01,0.01,5,5]);
+Qwbf(:,:,3)     = 100*diag([0,20,8,3,3,3,3,  10,2,0.01,0.01,0.01,5,5]);
 
 % FL2
-Qwb(:,:,4)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
 Rwb(:,:,4)      = eye(WBMC.usize);
+Qwb(:,:,4)      = 0.01*diag([0,10,5,2,2,2,2, 8,1,.01,5,5,5,5]);
 Swb(:,:,4)      = zeros(WBMC.ysize);
-Qwbf(:,:,4)     = 100*diag([10,20,8,3,3,3,3, 10,2,0.01,5,5,5,5]);
+Qwbf(:,:,4)     = 100*diag([0,20,8,3,3,3,3,  10,2,0.01,5,5,5,5]);
 
 % weightings for FB (floating-base) model
 % BS
@@ -93,7 +93,7 @@ Qfbf(:,:,4) = 100*diag([10,20,8,10,1,0.01]);
 
 for mode = 1:4
     WBPhases(mode).set_running_cost(@BoundCost.running_cost_Info);
-    WBPhases(mode).set_terminal_cost(@BoundCost.jump_terminal_cost_Info);
+    WBPhases(mode).set_terminal_cost(@BoundCost.terminal_cost_Info);
     WBPhases(mode).set_weightings(Qwb(:,:,mode),Rwb(:,:,mode),Swb(:,:,mode),Qwbf(:,:,mode));
     
     FBPhases(mode).set_running_cost(@BoundCost.running_cost_Info);

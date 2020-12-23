@@ -210,6 +210,7 @@ classdef Simulator < handle
             currentMode = sim.scheduledSeq(1);
             nextMode = sim.scheduledSeq(2);
             pidx = 1;
+            predidx = 1;    % index of predicted initial condition of next phase
             push = [];
             pushLoc = [];
             pushlinkidx = [];
@@ -226,10 +227,10 @@ classdef Simulator < handle
                     return
                 end
                 % falldown detection
-%                 if sim.fallDectection(xk,k,currentMode)
-%                     collision = 1; 
-%                     return
-%                 end
+                if sim.fallDectection(xk,k,currentMode)
+                    collision = 1; 
+                    return
+                end
 % %                 joint limit detection
 %                 if sim.jointLimitViolation(xk)
 %                     collision = 1; 
@@ -261,7 +262,7 @@ classdef Simulator < handle
                 [xk_next, y] = sim.model.dynamics(xk, uk, currentMode, push, pushLoc, pushlinkidx);
                 X(:, k+1) = xk_next;
                 k = k + 1;
-                predidx = k - 1;
+                predidx = k;
             end
             [xk_next,~] = sim.model.resetmap(xk, currentMode, nextMode);
             X(:, k+1) = xk_next;
@@ -281,7 +282,7 @@ classdef Simulator < handle
             delayidx = k;
             X(:,delayidx+1:end)=[]; % remove surplus preallocated memory
             X(:,1) = []; % remove the initial condition
-            predidx = predidx - 1;
+            predidx = predidx - 1; % minux 1 since initial condition is removed
         end
     end
     

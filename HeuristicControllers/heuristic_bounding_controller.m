@@ -1,5 +1,4 @@
 function heuristic_bounding_controller(model, modeSeq, hybridT)
-
 %% flight phase reference angles
 the_ref = [pi/4,-pi*7/12,pi/4,-pi*7/12]';
 NomSpringLen = 0.2462;
@@ -9,7 +8,7 @@ Kspring = 2200;         % spring stiffness
 
 
 for idx = 1:length(modeSeq)
-    mode = modeSeq(idx);
+    mode = modeSeq(idx);    
     for k = 1:hybridT(idx).N_horizon - 1
         xk  =   hybridT(idx).Xbar(:,k);
         qk  =   xk(1:model.qsize,1);

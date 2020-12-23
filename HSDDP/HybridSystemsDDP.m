@@ -142,7 +142,7 @@ classdef HybridSystemsDDP < handle
             % Parent phases
             for idx = 1:DDP.n_Phases
                 AL_ReB_params(idx) = DDP.Phases(idx).AL_ReB_params;
-%                 AL_ReB_params(idx).eps_ReB(end-1:end) = 0;
+                AL_ReB_params(idx).eps_ReB(end-1:end) = 0;
             end
             
             % Initial sweep            
@@ -207,20 +207,13 @@ classdef HybridSystemsDDP < handle
                 ou_iter = ou_iter + 1;
                 AL_ReB_params = DDP.update_AL_ReB_params(AL_ReB_params, DDP.h, options);
                 % Only for gap jumping
-%                 for i = 1:length(AL_ReB_params)
-%                     AL_ReB_params(i).eps_ReB(end-1:end) = 5*AL_ReB_params(i).eps_ReB(end-1:end);
-%                 end
-%                 if ou_iter == 3
-%                     for i = 1:length(AL_ReB_params)
-%                         AL_ReB_params(i).eps_ReB(end-1:end) = DDP.Phases(i).AL_ReB_params.eps_ReB(end-1:end);
-%                     end                   
-%                 end
-%                 
-%                 if ou_iter > 3
-%                     for i = 1:length(AL_ReB_params)
-%                         AL_ReB_params(i).eps_ReB(end-1:end) = 5*DDP.Phases(i).AL_ReB_params.eps_ReB(end-1:end);
-%                     end  
-%                 end
+
+                if ou_iter == 3
+                    for i = 1:length(AL_ReB_params)
+                        AL_ReB_params(i).eps_ReB(end-1:end) = DDP.Phases(i).AL_ReB_params.eps_ReB(end-1:end);
+                    end                   
+                end             
+
             end
                                    
             for idx = 1:DDP.n_Phases
@@ -261,19 +254,22 @@ classdef HybridSystemsDDP < handle
     
     methods (Static)
         function params = update_AL_ReB_params(params, h, options)
-            for i = 1:length(params)
-                if norm(cellfun(@norm, h)) > 0.01
+            for i = 1:length(params)                
+                if norm(cellfun(@norm, h)) > 0.05
                     params(i).lambda = params(i).lambda + h{i}*params(i).sigma;
-                    params(i).sigma = options.beta_penalty * params(i).sigma;
-                end                               
-                
+                    params(i).sigma = options.beta_penalty * params(i).sigma; 
+                else
+                    params(i).delta(end-1:end) = options.beta_relax*params(i).delta(end-1:end);
+                    params(i).delta(params(i).delta<1e-3) = 1e-3;
+                    params(i).eps_ReB(1:end-2) = options.beta_ReB*params(i).eps_ReB(1:end-2);
+                    params(i).eps_ReB(end-1:end) = 2*options.beta_ReB*params(i).eps_ReB(end-1:end);
+                end                                               
                 % update ReB params
 %                 if options.beta_relax > 1
 %                     options.beta_relax = 0.5;
 %                 end
 %                 params(i).delta = options.beta_relax*params(i).delta;
-%                 params(i).delta(params(i).delta<1e-3) = 1e-3;
-                params(i).eps_ReB = 8*params(i).eps_ReB;
+%                 params(i).delta(params(i).delta<1e-3) = 1e-3;                
             end
         end
     end           

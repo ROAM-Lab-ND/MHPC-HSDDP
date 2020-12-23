@@ -45,10 +45,11 @@ classdef BasePhase < matlab.mixin.Copyable
             Ph.Q = eye(model.xsize);
             Ph.R = eye(model.usize);
             Ph.S = zeros(model.ysize);
-            Ph.Qf = 50*eye(model.xsize);
+            Ph.Qf = eye(model.xsize);
             Ph.dt = model.dt;            
         end
     end
+    
     
     methods % dynamics
         function [x_next, y] = dynamics(Ph,x,u)
@@ -59,7 +60,7 @@ classdef BasePhase < matlab.mixin.Copyable
             [x_next, y] = Ph.model.resetmap(x,Ph.mode,Ph.next_mode);
             if Ph.model_transition_flag
                 Ph.Pr = [eye(3), zeros(3,11);
-                      zeros(3,7),eye(3),zeros(3,4)];
+                         zeros(3,7),eye(3),zeros(3,4)];
                 x_next = Ph.Pr*x_next;
             else
                 Ph.Pr = eye(Ph.model.xsize);
@@ -104,11 +105,11 @@ classdef BasePhase < matlab.mixin.Copyable
         
         function phiInfo     = terminal_cost_Info(Ph, x)
             xd = Ph.Td.x(:,end);
-            scale = 1;
+            Qfinal = Ph.Qf;
             if Ph.lastPhase
-                scale = 5;
-            end
-            phiInfo = Ph.terminal_cost_handle(x,xd,scale*Ph.Qf);
+                Qfinal(1,1) = 6000;
+            end           
+            phiInfo = Ph.terminal_cost_handle(x,xd,Qfinal);
         end
     end
     
