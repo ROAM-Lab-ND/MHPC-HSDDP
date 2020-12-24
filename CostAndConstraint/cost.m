@@ -37,18 +37,21 @@ classdef cost < handle
             link = [3, 5];
             for idx = 1:2
                 p = co.WBModel.getPosition(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
-                [J,~] = co.WBModel.getJacobian(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
-                [Jx,~] = co.WBModel.getJacobianPar(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
                 [g,dg,ddg] = gapFunc(p(1));
                 d = p(2) - g;
+                if d < -0.05 % If the foot is too lower than gap function, skip
+                    break;
+                end
+                [J,~] = co.WBModel.getJacobian(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
+                [Jx,~] = co.WBModel.getJacobianPar(x, link(idx), [0,-co.WBModel.kneeLinkLength]');                
                 dx = [J(2,:), zeros(1,co.WBModel.qsize)] - [dg*J(1,:),zeros(1,co.WBModel.qsize)];
                 dxx = [squeeze(Jx(2,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)] - ...
                     [squeeze(Jx(1,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)]*dg -...
                     blkdiag(J(1,:)'*J(1,:),zeros(co.WBModel.qsize))*ddg;
-                a = -40;
-                phi = exp(a*d);
-                phix = a*phi*dx';
-                phixx = a*phi*dxx + a^2*phi*(dx'*dx);
+                a = -5;
+                phi = 10*exp(a*d);
+                phix = 10*a*phi*dx';
+                phixx = 10*(a*phi*dxx + a^2*phi*(dx'*dx));
                 
                 phiInfo = co.add_terminal_cost(phiInfo,phi,phix,phixx);
             end

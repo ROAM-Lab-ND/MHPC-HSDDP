@@ -42,7 +42,6 @@ classdef HybridSystemsDDP < handle
         function success = forwardsweep(DDP, eps, AL_ReB_params, options)
             DDP.V = 0;
             DDP.hnorm = 0;
-            hnormsqure = 0;
             success = 1;
             Footholds = [];
             for idx = 1:DDP.n_Phases                
@@ -77,10 +76,9 @@ classdef HybridSystemsDDP < handle
                 if ~success
                     break;
                 end
-                hnormsqure = hnormsqure + DDP.h{idx}*DDP.h{idx}';
                 DDP.V = DDP.V + DDP.hybridT(idx).V;
             end 
-            DDP.hnorm = sqrt(hnormsqure);
+            DDP.hnorm = norm(cellfun(@norm, DDP.h));
         end
         
         function forwarditeration(DDP, AL_ReB_params, options)
@@ -135,22 +133,35 @@ classdef HybridSystemsDDP < handle
             AL_ReB_params = repmat(struct('sigma',[],...
                                           'lambda',[],...
                                           'delta',[],...
+                                          'delta_min',[],...
                                           'eps_ReB',[],...
                                           'eps_smooth',[]),[1, DDP.n_Phases]);
                                       
-            % Initialize AL and ReB parameters with values defined in
-            % Parent phases
+            % Initialize AL and ReB parameters with zeros
             for idx = 1:DDP.n_Phases
-                AL_ReB_params(idx) = DDP.Phases(idx).AL_ReB_params;
-                AL_ReB_params(idx).eps_ReB(end-1:end) = 0;
+                AL_ReB_params(idx).eps_ReB = zeros(1,length(DDP.Phases(idx).AL_ReB_params.eps_ReB));
+                AL_ReB_params(idx).eps_smooth = 0;
+                AL_ReB_params(idx).sigma = zeros(1,length(DDP.Phases(idx).AL_ReB_params.sigma));
+                AL_ReB_params(idx).lambda = zeros(1,length(DDP.Phases(idx).AL_ReB_params.lambda));
+                AL_ReB_params(idx).delta = DDP.Phases(idx).AL_ReB_params.delta;
+                AL_ReB_params(idx).delta_min = DDP.Phases(idx).AL_ReB_params.delta_min;
             end
             
-            % Initial sweep            
-            options.feedback_active = 0;
-            DDP.forwardsweep(1, AL_ReB_params, options);
-            DDP.updateNominalTrajectory();
+            if options.AL_active
+                for idx = 1:DDP.n_Phases
+                    AL_ReB_params(idx).sigma = DDP.Phases(idx).AL_ReB_params.sigma;
+                    AL_ReB_params(idx).lambda = DDP.Phases(idx).AL_ReB_params.lambda;
+                end
+            end
+            
+            if options.smooth_active
+                for idx = 1:DDP.n_Phases
+                    AL_ReB_params(idx).eps_smooth = DDP.Phases(idx).AL_ReB_params.eps_smooth;
+                end
+            end            
             
             % Iterate
+            first_NonzeroReB = 1;
             ou_iter = 1;           
                         
             while 1 % Implement AL and ReB in outer loop
@@ -159,11 +170,11 @@ classdef HybridSystemsDDP < handle
                     fprintf('\t Outer loop Iteration %3d\n',ou_iter);
                 end
                 
-                if options.AL_active || options.ReB_active
-                    options.feedback_active = 0;
-                    DDP.forwardsweep(1, AL_ReB_params, options);
-                    DDP.updateNominalTrajectory();
-                end
+                % Initial sweep 
+                options.feedback_active = 0;
+                DDP.forwardsweep(1, AL_ReB_params, options);
+                DDP.updateNominalTrajectory();
+                
                 Vprev = DDP.V;
                 regularization = 0;       
                 in_iter = 1;
@@ -206,14 +217,22 @@ classdef HybridSystemsDDP < handle
                 end
                 ou_iter = ou_iter + 1;
                 AL_ReB_params = DDP.update_AL_ReB_params(AL_ReB_params, DDP.h, options);
-                % Only for gap jumping
-
-                if ou_iter == 3
-                    for i = 1:length(AL_ReB_params)
-                        AL_ReB_params(i).eps_ReB(end-1:end) = DDP.Phases(i).AL_ReB_params.eps_ReB(end-1:end);
-                    end                   
-                end             
-
+                
+                % reinitialize eps_ReB param according to equality
+                % constriant violation
+                if options.ReB_active
+                    if DDP.hnorm > 0.05
+                        for i = 1:length(AL_ReB_params)
+                            AL_ReB_params(i).eps_ReB = zeros(1, length(DDP.Phases(i).AL_ReB_params.eps_ReB));
+                        end
+                        first_NonzeroReB = 1;
+                    elseif first_NonzeroReB
+                        for i = 1:length(AL_ReB_params)
+                            AL_ReB_params(i).eps_ReB = DDP.Phases(i).AL_ReB_params.eps_ReB;
+                        end
+                        first_NonzeroReB = 0;
+                    end
+                end
             end
                                    
             for idx = 1:DDP.n_Phases
@@ -259,17 +278,12 @@ classdef HybridSystemsDDP < handle
                     params(i).lambda = params(i).lambda + h{i}*params(i).sigma;
                     params(i).sigma = options.beta_penalty * params(i).sigma; 
                 else
-                    params(i).delta(end-1:end) = options.beta_relax*params(i).delta(end-1:end);
-                    params(i).delta(params(i).delta<1e-3) = 1e-3;
-                    params(i).eps_ReB(1:end-2) = options.beta_ReB*params(i).eps_ReB(1:end-2);
-                    params(i).eps_ReB(end-1:end) = 2*options.beta_ReB*params(i).eps_ReB(end-1:end);
-                end                                               
-                % update ReB params
-%                 if options.beta_relax > 1
-%                     options.beta_relax = 0.5;
-%                 end
-%                 params(i).delta = options.beta_relax*params(i).delta;
-%                 params(i).delta(params(i).delta<1e-3) = 1e-3;                
+                    params(i).eps_ReB = options.beta_ReB*params(i).eps_ReB;
+                    if ~isempty(params(i).delta)
+                        params(i).delta = options.beta_relax*params(i).delta;
+                        params(i).delta(params(i).delta<params(i).delta_min) = params(i).delta_min(params(i).delta<params(i).delta_min);
+                    end
+                end                                                                          
             end
         end
     end           

@@ -109,7 +109,12 @@ for i = 1:16
     % Run simulator
     % predidx indicates when delay = 0. This should be used as the initial
     % condition for the next MHPC planning.    
-    [Xphase, predidx] = sim.run(x0_sim,currentDelay, disturbInfo);
+    [Xphase, predidx, collision] = sim.run(x0_sim,currentDelay, disturbInfo);
+    if collision == 1        
+        fprintf('Simulation stops because of collision. /n');
+        X = [X, Xphase(:,1:predidx)];
+        break;
+    end
     
     X = [X, Xphase];
     

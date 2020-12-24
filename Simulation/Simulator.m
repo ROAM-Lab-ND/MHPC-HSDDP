@@ -122,7 +122,7 @@ classdef Simulator < handle
             switch currentMode
                 case {2,4}
                     if any(strcmp(collisionList, "Ffoot")) || any(strcmp(collisionList, "Bfoot"))
-                        if ~any(sim.touchDown(x,j,currentMode,collisionList)==1) && j > 30
+                        if ~any(sim.touchDown(x,j,currentMode,collisionList)==1) && j > 25
                             fall = 1;
                             return
                         end
@@ -148,14 +148,14 @@ classdef Simulator < handle
             % If front foot is in collision and current mode is first
             % flight, fire front foot TD
             if currentMode == 2
-                if any(strcmp(collisionList, "Ffoot")) && j > 30                    
+                if any(strcmp(collisionList, "Ffoot"))                    
                     TD(1) = 1;
                 end
             end            
             % If back foot is in collision and current mode is second
             % flight, fire back foot TD
             if currentMode == 4
-                if any(strcmp(collisionList, "Bfoot")) && j > 30                    
+                if any(strcmp(collisionList, "Bfoot"))                    
                     TD(2) = 1;
                 end
             end
@@ -282,7 +282,7 @@ classdef Simulator < handle
             delayidx = k;
             X(:,delayidx+1:end)=[]; % remove surplus preallocated memory
             X(:,1) = []; % remove the initial condition
-            predidx = predidx - 1; % minux 1 since initial condition is removed
+            predidx = predidx - 1; % minus 1 since initial condition is removed
         end
     end
     
