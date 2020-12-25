@@ -144,7 +144,7 @@ graphicsOptions.leg_active = 1;
 graphicsOptions.push_active = 0;
 graphicsOptions.GRF_acitive = 0;
 graphicsOptions.gapLoc = 0.96;
-graphicsOptions.gapWidth = 0.3;
+graphicsOptions.gapWidth = 0.4;
 
 graphics = Graphics(get3DMCParams(), WBMC2D);
 % graphics.process2DData(X);
