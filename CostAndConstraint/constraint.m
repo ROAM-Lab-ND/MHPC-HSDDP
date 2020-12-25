@@ -14,7 +14,7 @@ classdef constraint < handle
     end
     
     methods
-        function ineqInfo = WB_bounding_ineq_constr(cs,x,u,y,mode)           
+        function ineqInfo = WB_bounding_ineq_constr(cs,x,u,y,mode,flag)           
             C = []; b = [];
             ncs = 0;
             usize = cs.WBModel.usize;
@@ -27,7 +27,7 @@ classdef constraint < handle
                 case {2,4}
                     ncs = 8;
             end
-            ineqInfo = ineqInfoStruct(ncs, cs.WBModel.xsize, cs.WBModel.usize, cs.WBModel.ysize);                    
+                               
             %% Torque limit Cu*u + bu > = 0
             Cu = [-eye(usize);
                 eye(usize)];
@@ -77,14 +77,22 @@ classdef constraint < handle
                 b = [b;
                     by];
             end
+            switch flag
+                case 'nopar'
+                    ineqInfo = C*[x; u; y] + b;
+                case 'par'
+                    ineqInfo = ineqInfoStruct(ncs, xsize, usize,ysize);
+                    ineqInfo.c = C*[x; u; y] + b;
+                    ineqInfo.cx = C(:,1:xsize);
+                    ineqInfo.cu = C(:,xsize+1:xsize+usize);
+                    ineqInfo.cy = C(:,end-ysize+1:end);
+                    ineqInfo.cxx = zeros(xsize, xsize, size(C,1));
+                    ineqInfo.cuu = zeros(usize, usize, size(C,1));
+                    ineqInfo.cyy = zeros(ysize, ysize, size(C,1));
+                otherwise
+                    error('Wrong input! flag must be either "nopar" or "par"');
+            end
             
-            ineqInfo.c = C*[x; u; y] + b;
-            ineqInfo.cx = C(:,1:xsize);
-            ineqInfo.cu = C(:,xsize+1:xsize+usize);
-            ineqInfo.cy = C(:,end-ysize+1:end);
-            ineqInfo.cxx = zeros(xsize, xsize, size(C,1));
-            ineqInfo.cuu = zeros(usize, usize, size(C,1));
-            ineqInfo.cyy = zeros(ysize, ysize, size(C,1));
         end
         
         function [h,hx,hxx] = WB_bounding_tm_constr(cs,x,mode)
@@ -98,32 +106,39 @@ classdef constraint < handle
             end
         end
         
-        function ineqInfo = WB_jumping_ineq_constr(cs,x,u,y,mode)
-            ineqInfo = cs.WB_bounding_ineq_constr(x,u,y,mode);
+        function ineqInfo = WB_jumping_ineq_constr(cs,x,u,y,mode,flag)
+            ineqInfo = cs.WB_bounding_ineq_constr(x,u,y,mode,flag);
             
-            % gap ineq constraint on front foot
-            cu = zeros(1, cs.WBModel.usize);
-            cy = zeros(1, cs.WBModel.ysize);
-            cuu = zeros(cs.WBModel.usize);
-            cyy = zeros(cs.WBModel.ysize);
-%             cxx = zeros(cs.WBModel.xsize);
-                
+            % preallocate memory for gradient and hessian of jumping
+            % constraint
+            if strcmp(flag, 'par')
+                cu = zeros(1, cs.WBModel.usize);
+                cy = zeros(1, cs.WBModel.ysize);
+                cuu = zeros(cs.WBModel.usize);
+                cyy = zeros(cs.WBModel.ysize);
+                cxx = zeros(cs.WBModel.xsize);
+            end
+                            
             link = [3, 5];
             for idx = 1:2
                 p = cs.WBModel.getPosition(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
-                [J,~] = cs.WBModel.getJacobian(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
-                [Jx,~] = cs.WBModel.getJacobianPar(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
                 [rgap, drgap, ddrgap] = gapFunc(p(1)); % evaluate the quadratic function induced by the gap
                 c = p(2) - rgap;
-                cx = [J(2,:), zeros(1,cs.WBModel.qsize)] - [drgap*J(1,:),zeros(1,cs.WBModel.qsize)];
-                cxx = [squeeze(Jx(2,:,:));zeros(cs.WBModel.qsize, cs.WBModel.xsize)] - ...
-                      [squeeze(Jx(1,:,:));zeros(cs.WBModel.qsize, cs.WBModel.xsize)]*drgap -...
-                      blkdiag(J(1,:)'*J(1,:),zeros(cs.WBModel.qsize))*ddrgap;                
-                
-                % add to ineqInfo
-                ineqInfo.add_constraint(c,cx,cu,cy,cxx,cuu,cyy);
-            end
-                                    
+                if strcmp(flag, 'nopar')
+                    ineqInfo = [ineqInfo; c];
+                else
+                    [J,~] = cs.WBModel.getJacobian(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
+                    [Jx,~] = cs.WBModel.getJacobianPar(x, link(idx), [0,-cs.WBModel.kneeLinkLength]');
+                    
+                    cx = [J(2,:), zeros(1,cs.WBModel.qsize)] - [drgap*J(1,:),zeros(1,cs.WBModel.qsize)];
+                    cxx = [squeeze(Jx(2,:,:));zeros(cs.WBModel.qsize, cs.WBModel.xsize)] - ...
+                        [squeeze(Jx(1,:,:));zeros(cs.WBModel.qsize, cs.WBModel.xsize)]*drgap -...
+                        blkdiag(J(1,:)'*J(1,:),zeros(cs.WBModel.qsize))*ddrgap;
+                    
+                    % add to ineqInfo
+                    ineqInfo.add_constraint(c,cx,cu,cy,cxx,cuu,cyy);
+                end                
+            end                                    
         end
         
         function ineqInfo = FB_jumping_ineq_constr(cs,x)
@@ -153,9 +168,7 @@ classdef constraint < handle
                 
                 % add to ineqInfo
                 ineqInfo.add_constraint(c,cx,cu,cy,cxx,cuu,cyy);
-            end
-             
-            
+            end                         
            
         end
     end

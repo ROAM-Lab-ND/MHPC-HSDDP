@@ -1,8 +1,14 @@
-function phiInfo = update_terminalInfo_with_AL(h, hx, hxx, phiInfo, sigma, lambda)
+function phiInfo = update_terminalInfo_with_AL(h, hx, hxx, phiInfo, sigma, lambda, type)
 
 % h equality constraint in column vec
 % hx, hxx Jacobin (partial x in colum dir) and hessian of equality constraints
+
 cost = (sigma/2)^2*(h'*h) + lambda'*h;
+if strcmp(type, 'nopar')
+    phiInfo     = phiInfo   + 50*cost;  
+    return;
+end
+
 xsize = size(hx, 1);
 
 G = zeros(xsize, 1);
