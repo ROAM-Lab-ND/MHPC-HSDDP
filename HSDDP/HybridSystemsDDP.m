@@ -84,7 +84,7 @@ classdef HybridSystemsDDP < handle
         function forwarditeration(DDP, AL_ReB_params, options)
             eps = 1;
             Vprev = DDP.V;
-            
+            options.parCalc_active = 0;
             while eps > 1e-10                                                                 
                  success = DDP.forwardsweep(eps, AL_ReB_params, options);
                  
@@ -94,7 +94,9 @@ classdef HybridSystemsDDP < handle
                  
                  % check if V is small enough to accept the step
                  if success && (DDP.V < Vprev + options.gamma*eps*(1-eps/2)*DDP.dV)
-                     % if so, break
+                     % if so, compute cost and dynamics partials, break
+                     options.parCalc_active = 1;
+                     DDP.forwardsweep(eps, AL_ReB_params, options);
                      break;
                  end
                  

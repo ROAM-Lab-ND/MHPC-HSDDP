@@ -1,5 +1,16 @@
-function lInfo = update_lInfo_with_ReB(lInfo, ineq_Info, dt, delta, eps)
+function lInfo = update_lInfo_with_ReB(lInfo, ineq_Info, dt, delta, eps, type)
 % Copy ineq constraint infrom from ineq_Info
+if strcmp(type, 'nopar')
+    c = ineq_Info;
+    
+    [B, ~, ~]   = ReducedBarrier(c, delta); % Compute ReB and its partials for ineq
+
+    lInfo = lInfo + eps*B*dt; % Update running cost (same eps for all ineqs)
+    
+    return;
+end
+
+
 c  = ineq_Info.c; 
 cx = ineq_Info.cx; 
 cu = ineq_Info.cu; 
@@ -7,7 +18,6 @@ cy = ineq_Info.cy;
 cxx = ineq_Info.cxx;
 cuu = ineq_Info.cuu;
 cyy = ineq_Info.cyy;
-
 
 [B, Bc, Bcc]   = ReducedBarrier(c, delta); % Compute ReB and its partials for ineq
 

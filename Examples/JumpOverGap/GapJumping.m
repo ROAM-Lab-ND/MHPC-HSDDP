@@ -55,6 +55,7 @@ options.AL_active        = 1;          % Augmented Lagrangian active
 options.ReB_active       = 1;          % Reduced barrier active
 options.feedback_active  = 1;          % Smoothness active
 options.smooth_active    = 0;
+options.parCalc_active   = 1;          % compute cost and dynamics partials in forward sweep (default)
 options.Debug            = 1;          % Debug active
                             
 %% Run HSDDP

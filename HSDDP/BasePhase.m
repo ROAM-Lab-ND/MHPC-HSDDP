@@ -81,7 +81,7 @@ classdef BasePhase < matlab.mixin.Copyable
     end
     
     methods % cost
-        function lInfo       = running_cost_Info(Ph,k,x,u,y)
+        function lInfo       = running_cost_Info(Ph,k,x,u,y,type)
             if size(Ph.Td.x,2)<= 2
                 xd = Ph.Td.x(:,1);                            
             else
@@ -100,16 +100,16 @@ classdef BasePhase < matlab.mixin.Copyable
                 yd = Ph.Td.y(:,k);
             end
             
-            lInfo = Ph.running_cost_handle(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt);
+            lInfo = Ph.running_cost_handle(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt,type);
         end
         
-        function phiInfo     = terminal_cost_Info(Ph, x)
+        function phiInfo     = terminal_cost_Info(Ph, x, type)
             xd = Ph.Td.x(:,end);
             Qfinal = Ph.Qf;
             if Ph.lastPhase
-                Qfinal(1,1) = 6000;
+                Qfinal(1,1) = 8000;
             end           
-            phiInfo = Ph.terminal_cost_handle(x,xd,Qfinal);
+            phiInfo = Ph.terminal_cost_handle(x,xd,Qfinal, type);
         end
     end
     
@@ -124,11 +124,11 @@ classdef BasePhase < matlab.mixin.Copyable
             end                                   
         end        
         
-        function ineqInfo    = ineq_constr_Info(Ph, x, u, y) 
+        function ineqInfo    = ineq_constr_Info(Ph, x, u, y, type) 
             if Ph.ineqconstr_active
                 message = sprintf('Ineq constraint is not set for mode %d', Ph.mode);
                 assert(~isempty(Ph.ineqconstr_handle), message);  
-                ineqInfo = Ph.ineqconstr_handle(x, u, y, Ph.mode); 
+                ineqInfo = Ph.ineqconstr_handle(x, u, y, Ph.mode,type); 
             else
                 ineqInfo = [];
             end                          
