@@ -1,5 +1,5 @@
 classdef PlanarFloatingBase < BaseDyn
-    properties (SetAccess=protected, GetAccess=public)
+    properties (SetAccess=private, GetAccess=public)
         dt
         qsize = 3; 
         xsize = 6;        
@@ -7,6 +7,7 @@ classdef PlanarFloatingBase < BaseDyn
         ysize = 4;       
         p = zeros(4,1); % foothold location
         s = ones(2, 1); % contact state
+        WBModel
     end
     
     properties % inertia params
@@ -16,8 +17,11 @@ classdef PlanarFloatingBase < BaseDyn
     
     methods
         % constructor
-        function m = PlanarFloatingBase(dt)           
-            m.dt = dt;                       
+        function m = PlanarFloatingBase(dt) 
+            m.dt = dt;  
+            m.WBModel = PlanarQuadruped(dt);
+            build2DminiCheetah(m.WBModel);
+            recomputeInertia(m);
         end
     end
     
@@ -80,6 +84,24 @@ classdef PlanarFloatingBase < BaseDyn
         
         function set_contactState(m, cState)
             m.s = cState;
+        end
+    end
+    
+    methods
+        function recomputeInertia(m)
+            wbQuad = m.WBModel;
+            m.mass = wbQuad.bodyMass + 2*wbQuad.kneeLinkMass + 2*wbQuad.hipLinkMass;
+            
+            dist_CoM_hip = norm(wbQuad.hipLoc{1} + ry(-pi/2)*wbQuad.hipLinkCoM);
+            dist_CoM_knee = dist_CoM_hip + norm(wbQuad.kneeLinkCoM);
+            
+            eqv_hipRotInertia =  wbQuad.hipRotInertia + wbQuad.hipLinkMass*dist_CoM_hip^2*0.85;
+            eqv_kneeRotInertia = wbQuad.kneeRotInertia + wbQuad.kneeLinkMass*dist_CoM_knee^2*0.6;
+            
+            eqv_bodyRotInertia = wbQuad.bodyRotInertia + 2*eqv_hipRotInertia + 2*eqv_kneeRotInertia;
+            [~, D] = eig(eqv_bodyRotInertia);
+            
+            m.Inertia = D(2,2);
         end
     end
 end

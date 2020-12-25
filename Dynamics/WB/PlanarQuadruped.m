@@ -1,5 +1,5 @@
 classdef PlanarQuadruped < BaseDyn
-    properties (SetAccess=protected, GetAccess=public)
+    properties (SetAccess=private, GetAccess=public)
         dt
         qsize = 7; 
         xsize = 14;

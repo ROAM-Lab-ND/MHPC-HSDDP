@@ -1,5 +1,5 @@
 classdef  BaseDyn < handle
-    properties (Abstract,SetAccess=protected, GetAccess=public)
+    properties (Abstract,SetAccess=private, GetAccess=public)
         dt      
         qsize
         xsize
