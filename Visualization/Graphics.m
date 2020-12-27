@@ -40,6 +40,8 @@ classdef Graphics < handle
                 G.trajectory2D(pidx).x_c = [pos2D;pitch];
                 G.trajectory2D(pidx).q   = q2D;
                 G.trajectory2D(pidx).t = simTrajectory(pidx).t;
+                G.trajectory2D(pidx).U = simTrajectory(pidx).U;
+                G.trajectory2D(pidx).Y = simTrajectory(pidx).Y;
                 
                 [pitch_d, pos2D_d, q2D_d] = G.get2DConfig(simTrajectory(pidx).Xopt);
                 G.trajectory2D(pidx).x_c_d = [pitch_d; pos2D_d];
@@ -292,6 +294,50 @@ classdef Graphics < handle
             p = p1 + R01*R12*R23*[ l2 ; 0 ;0];
             R = R01*R12*R23;
         end                              
+    end
+    
+    methods
+        function plot(G, input)
+            t = [G.trajectory2D.t];
+            x = [G.trajectory2D.x_c(1,:)];
+            z = [G.trajectory2D.x_c(2,:)];
+            pitch = [G.trajectory2D.x_c(3,:)];
+            q = [G.trajectory2D.q];
+%             torque = [G.trajectory2D.U];
+%             GRF = [G.trajectory2D.Y];
+            
+            figure;
+            switch input
+                case 'torque'
+                    plot(t, torque, 'linewidth', 1.5);
+                    xlabel('time', 'interpreter','latex');
+                    ylabel('torque ($N\cdot m$)', 'interpreter','latex');
+                    hold on
+                    plot(t, -34*ones(1,length(t)), t, 34*ones(1,length(t)), '--','linewidth', 1.0);
+                    l = legend('$J_1$','$J_2$','$J_3$','$J_4$', 'max', 'min');
+                    l.Interpreter = 'latex';
+                case 'pos'
+                    subplot(211)
+                    plot(t, x, 'linewidth', 1.5);
+                    ylabel('x (mm)', 'interpreter','latex');
+                    set(gca, 'Fontsize', 12);
+                    subplot(212)
+                    plot(t, z, 'linewidth', 1.5);
+                    ylabel('z (mm)', 'interpreter','latex');
+                    xlabel('time', 'interpreter','latex');
+                case 'pitch'
+                    plot(t, pitch, 'linewidth', 1.5);
+                    xlabel('time', 'interpreter','latex');
+                    ylabel('pitch (rad)', 'interpreter','latex');
+                case 'joint'
+                    plot(t, q, 'linewidth', 1.5);
+                    xlabel('time', 'interpreter','latex');
+                    ylabel('joint angle (rad)', 'interpreter','latex');
+                    l = legend('$J_1$','$J_2$','$J_3$','$J_4$');
+                    l.Interpreter = 'latex';
+            end
+            set(gca, 'Fontsize', 12);
+        end
     end
     
     methods (Static)
