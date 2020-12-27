@@ -2,6 +2,7 @@ classdef constraint < handle
     properties
         WBModel
         FBModel
+        joint_virtualLeg
     end
     
     methods % constructor
@@ -9,6 +10,7 @@ classdef constraint < handle
             if nargin > 0
                 cs.WBModel = wbmodel;
                 cs.FBModel = fbmodel;
+                cs.joint_virtualLeg = [0.3*pi,-0.7*pi,0.3*pi,-0.7*pi]';
             end
         end
     end
@@ -106,6 +108,25 @@ classdef constraint < handle
             end
         end
         
+        function [h,hx,hxx] = FB_jumping_tm_constr(cs,xFB, mode)
+            % Append virtual legs to the floating base
+            qWB = [xFB(1:3); cs.joint_virtualLeg];
+            xWB = [qWB; zeros(7,1)];
+            switch mode
+                case 2
+                    [h, hxWB, hxxWB] = WB_FL1_terminal_constr(xWB);
+                case 4
+                    [h, hxWB, hxxWB] = WB_FL2_terminal_constr(xWB);
+                otherwise
+                    h = 0; hx = zeros(1, cs.FBModel.xsize); hxx = zeros(cs.FBModel.xsize);
+                    return;
+            end
+            
+            % remove dependency of hx and hxx on virtual legs
+            hx = hxWB(:,[1:3,8:10]);
+            hxx = hxxWB([1:3,8:10],[1:3,8:10]);
+        end
+        
         function ineqInfo = WB_jumping_ineq_constr(cs,x,u,y,mode,flag)
             ineqInfo = cs.WB_bounding_ineq_constr(x,u,y,mode,flag);
             
@@ -141,33 +162,41 @@ classdef constraint < handle
             end                                    
         end
         
-        function ineqInfo = FB_jumping_ineq_constr(cs,x)
-            ncs = 2;
-            ineqInfo = ineqInfoStruct(ncs,cs.FBModel.xsize, cs.FBModel.usize, cs.FBModel.ysize);
-            % Front foothold location of virtually fixed leg
-            qWB = [x(1:3)',0.3*pi,-0.7*pi,0.3*pi,-0.7*pi];
+        function ineqInfo = FB_jumping_ineq_constr(cs,xFB,uFB,yFB,mode,flag)
+            ineqInfo = [];
             
-            cu = zeros(1, cs.FBModel.usize);
-            cy = zeros(1, cs.FBModel.ysize);
-            cuu = zeros(cs.FBModel.usize);
-            cyy = zeros(cs.FBModel.ysize);
-                
+            % Append virtual legs to the floating base
+            qWB = [xFB(1:3); cs.joint_virtualLeg];
+            
+            % Preallocate memory if needs to compute partials
+            if strcmp(flag, 'par')
+                ineqInfo = ineqInfoStruct();
+                cu = zeros(1, cs.FBModel.usize);
+                cy = zeros(1, cs.FBModel.ysize);
+                cuu = zeros(cs.FBModel.usize);
+                cyy = zeros(cs.FBModel.ysize);
+            end
+                            
             link = [3,5];
-            for idx = 1:2
+            for idx = 1:2                
                 p = cs.WBModel.getPosition(qWB, link(idx), [0, cs.WBModel.kneeLinkLength]');
-                xWB = [qWB; zeros(7,1)];
                 [rgap, drgap, ddrgap] = gapFunc(p(1));
                 c = p(2) - rgap;
-                [J_WB,~] = cs.WBModel.getJacobian(xWB, link(idx), [0,-cs.WBModel.kneeLinkLength]');
-                [Jx_WB,~] = cs.WBModel.getJacobianPar(xWB, link(idx), [0,-cs.WBModel.kneeLinkLength]');
-                
-                cx = [J_WB(2,1:3), zeros(1,cs.FBModel.qsize)] - [drgap*J_WB(1,1:3),zeros(1,cs.FBModel.qsize)];
-                cxx = blkdiag(Jx_WB(2,1:3,1:3),zeros(cs.FBModel.qsize)) - ...
-                    blkdiag(Jx_WB(1,1:3,1:3),zeros(cs.FBModel.qsize))*drgap -...
-                    blkdiag(J_WB(1,1:3)'*J(1,1:3),zeros(cs.FBModel.qsize))*ddrgap;                
-                
-                % add to ineqInfo
-                ineqInfo.add_constraint(c,cx,cu,cy,cxx,cuu,cyy);
+                if strcmp(flag, 'nopar') % Only compute and output ineq violation
+                    ineqInfo = [ineqInfo;c];
+                elseif strcmp(flag, 'par') % Compute and output ineq violation and its derivatives information
+                    xWB = [qWB; zeros(7,1)];
+                    [J_WB,~] = cs.WBModel.getJacobian(xWB, link(idx), [0,-cs.WBModel.kneeLinkLength]');
+                    [Jx_WB,~] = cs.WBModel.getJacobianPar(xWB, link(idx), [0,-cs.WBModel.kneeLinkLength]');
+                    
+                    cx = [J_WB(2,1:3), zeros(1,cs.FBModel.qsize)] - [drgap*J_WB(1,1:3),zeros(1,cs.FBModel.qsize)];
+                    cxx = blkdiag(squeeze(Jx_WB(2,1:3,1:3)),zeros(cs.FBModel.qsize)) - ...
+                          blkdiag(squeeze(Jx_WB(1,1:3,1:3)),zeros(cs.FBModel.qsize))*drgap -...
+                          blkdiag(J_WB(1,1:3)'*J_WB(1,1:3),zeros(cs.FBModel.qsize))*ddrgap;
+                    
+                    % add to ineqInfo
+                    ineqInfo.add_constraint(c,cx,cu,cy,cxx,cuu,cyy);
+                end                                
             end                         
            
         end

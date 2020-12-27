@@ -1,13 +1,15 @@
 classdef cost < handle
     properties
         WBModel
-        FBModel       
+        FBModel
+        joint_virtualLeg
     end
     
     methods % constructor
         function co = cost(wbmodel, fbmodel)
             co.WBModel = wbmodel;
             co.FBModel = fbmodel;           
+            co.joint_virtualLeg = [0.3*pi,-0.7*pi,0.3*pi,-0.7*pi]';
         end
     end
     
@@ -45,9 +47,10 @@ classdef cost < handle
             
         end
         
-        function phiInfo = jump_terminal_cost_Info(co, x, xd, Q, flag)
+        function phiInfo = WB_jump_terminal_cost_Info(co, x, xd, Q, flag)
             phiInfo = co.terminal_cost_Info(x,xd,Q, flag);
-            
+            a = -5;
+            s = 5;
             % penalize distance from foot to gap function
             link = [3, 5];
             for idx = 1:2
@@ -57,8 +60,8 @@ classdef cost < handle
                 if d < -0.05 % If the foot is too lower than gap function, skip
                     break;
                 end
-                a = -5;
-                phi = 10*exp(a*d);
+                
+                phi = s*exp(a*d);
                 if strcmp(flag, 'nopar')
                     phiInfo = phiInfo + phi;
                 else
@@ -66,14 +69,50 @@ classdef cost < handle
                     [Jx,~] = co.WBModel.getJacobianPar(x, link(idx), [0,-co.WBModel.kneeLinkLength]');
                     dx = [J(2,:), zeros(1,co.WBModel.qsize)] - [dg*J(1,:),zeros(1,co.WBModel.qsize)];
                     dxx = [squeeze(Jx(2,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)] - ...
-                        [squeeze(Jx(1,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)]*dg -...
-                        blkdiag(J(1,:)'*J(1,:),zeros(co.WBModel.qsize))*ddg;
-                    phix = 10*a*phi*dx';
-                    phixx = 10*(a*phi*dxx + a^2*phi*(dx'*dx));
+                          [squeeze(Jx(1,:,:));zeros(co.WBModel.qsize, co.WBModel.xsize)]*dg -...
+                           blkdiag(J(1,:)'*J(1,:),zeros(co.WBModel.qsize))*ddg;
+                    phix = s*a*phi*dx';
+                    phixx = s*(a*phi*dxx + a^2*phi*(dx'*dx));
                     phiInfo = co.add_terminal_cost(phiInfo,phi,phix,phixx);
                 end                                                
             end
             
+        end
+        
+        function phiInfo = FB_jump_terminal_cost_Info(co, xFB, xdFB, Q, flag)
+            
+            phiInfo = co.terminal_cost_Info(xFB,xdFB,Q, flag);
+            
+            % Append virtual legs to the floating base
+            qWB = [xFB(1:3); co.joint_virtualLeg];
+            xWB = [qWB; zeros(7,1)];
+            a = -5;
+            s = 5;
+            % penalize distance from foot to gap function
+            link = [3, 5];
+            for idx = 1:2
+                p = co.WBModel.getPosition(qWB, link(idx), [0,-co.WBModel.kneeLinkLength]');
+                [g,dg,ddg] = gapFunc(p(1));
+                d = p(2) - g;
+                if d < -0.05 % If the foot is too lower than gap function, skip
+                    break;
+                end
+                
+                phi = s*exp(a*d);
+                if strcmp(flag, 'nopar')
+                    phiInfo = phiInfo + phi;
+                else
+                    [J_WB,~] = co.WBModel.getJacobian(xWB, link(idx), [0,-co.WBModel.kneeLinkLength]');
+                    [Jx_WB,~] = co.WBModel.getJacobianPar(xWB, link(idx), [0,-co.WBModel.kneeLinkLength]');
+                    dx = [J_WB(2,1:3), zeros(1,co.FBModel.qsize)] - [dg*J_WB(1,1:3),zeros(1,co.FBModel.qsize)];
+                    dxx = blkdiag(squeeze(Jx_WB(2,1:3,1:3)), zeros(co.FBModel.qsize)) - ...
+                          blkdiag(squeeze(Jx_WB(1,1:3,1:3)), zeros(co.FBModel.qsize))*dg -...
+                          blkdiag(J_WB(1,1:3)'*J_WB(1,1:3),zeros(co.FBModel.qsize))*ddg;
+                    phix = s*a*phi*dx';
+                    phixx = s*(a*phi*dxx + a^2*phi*(dx'*dx));
+                    phiInfo = co.add_terminal_cost(phiInfo,phi,phix,phixx);
+                end
+            end
         end
     end
     

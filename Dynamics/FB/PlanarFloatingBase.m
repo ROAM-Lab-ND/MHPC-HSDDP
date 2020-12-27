@@ -89,19 +89,21 @@ classdef PlanarFloatingBase < BaseDyn
     
     methods
         function recomputeInertia(m)
-            wbQuad = m.WBModel;
-            m.mass = wbQuad.bodyMass + 2*wbQuad.kneeLinkMass + 2*wbQuad.hipLinkMass;
+            ihat = [1 0 0]';
             
-            dist_CoM_hip = norm(wbQuad.hipLoc{1} + ry(-pi/2)*wbQuad.hipLinkCoM);
+            wbQuad = m.WBModel;
+            m.mass = wbQuad.robotMass;
+            
+            dist_CoM_hip = dot(wbQuad.hipLoc{1} + (ry(-pi/2))'*wbQuad.hipLinkCoM, ihat);
             dist_CoM_knee = dist_CoM_hip + norm(wbQuad.kneeLinkCoM);
             
             eqv_hipRotInertia =  wbQuad.hipRotInertia + wbQuad.hipLinkMass*dist_CoM_hip^2*0.85;
             eqv_kneeRotInertia = wbQuad.kneeRotInertia + wbQuad.kneeLinkMass*dist_CoM_knee^2*0.6;
             
             eqv_bodyRotInertia = wbQuad.bodyRotInertia + 2*eqv_hipRotInertia + 2*eqv_kneeRotInertia;
-            [~, D] = eig(eqv_bodyRotInertia);
+%             [~, D] = eig(eqv_bodyRotInertia);
             
-            m.Inertia = D(2,2);
+            m.Inertia = eqv_bodyRotInertia(2,2);
         end
     end
 end

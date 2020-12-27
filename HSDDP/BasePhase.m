@@ -81,7 +81,7 @@ classdef BasePhase < matlab.mixin.Copyable
     end
     
     methods % cost
-        function lInfo       = running_cost_Info(Ph,k,x,u,y,type)
+        function lInfo       = running_cost_Info(Ph,k,x,u,y,flag)
             if size(Ph.Td.x,2)<= 2
                 xd = Ph.Td.x(:,1);                            
             else
@@ -100,16 +100,16 @@ classdef BasePhase < matlab.mixin.Copyable
                 yd = Ph.Td.y(:,k);
             end
             
-            lInfo = Ph.running_cost_handle(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt,type);
+            lInfo = Ph.running_cost_handle(x,xd,u,ud,y,yd,Ph.Q,Ph.R,Ph.S,Ph.dt,flag);
         end
         
-        function phiInfo     = terminal_cost_Info(Ph, x, type)
+        function phiInfo     = terminal_cost_Info(Ph, x, flag)
             xd = Ph.Td.x(:,end);
             Qfinal = Ph.Qf;
             if Ph.lastPhase
                 Qfinal(1,1) = 8000;
             end           
-            phiInfo = Ph.terminal_cost_handle(x,xd,Qfinal, type);
+            phiInfo = Ph.terminal_cost_handle(x,xd,Qfinal, flag);
         end
     end
     
@@ -124,11 +124,11 @@ classdef BasePhase < matlab.mixin.Copyable
             end                                   
         end        
         
-        function ineqInfo    = ineq_constr_Info(Ph, x, u, y, type) 
+        function ineqInfo    = ineq_constr_Info(Ph, x, u, y, flag) 
             if Ph.ineqconstr_active
                 message = sprintf('Ineq constraint is not set for mode %d', Ph.mode);
                 assert(~isempty(Ph.ineqconstr_handle), message);  
-                ineqInfo = Ph.ineqconstr_handle(x, u, y, Ph.mode,type); 
+                ineqInfo = Ph.ineqconstr_handle(x, u, y, Ph.mode,flag); 
             else
                 ineqInfo = [];
             end                          
@@ -193,6 +193,7 @@ classdef BasePhase < matlab.mixin.Copyable
                 al_reb_params.sigma  = [];
                 al_reb_params.lambda = [];                
                 al_reb_params.delta  = [];   
+                al_reb_params.delta_min = [];
                 al_reb_params.eps_ReB = [];
                 al_reb_params.eps_smooth = [];
                 

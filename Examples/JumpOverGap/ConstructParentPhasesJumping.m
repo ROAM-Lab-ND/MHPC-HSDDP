@@ -30,7 +30,10 @@ WBPhases(4).set_ineq_constraint(@JumpConstraint.WB_jumping_ineq_constr);
 WBPhases(4).set_constraint_active('ineq');
 
 % FB constraints
-
+for mode = 1:4
+    FBPhases(mode).set_ineq_constraint(@JumpConstraint.FB_jumping_ineq_constr);
+    FBPhases(mode).set_constraint_active('ineq');
+end
 %% set quadratic cost weightings
 % Preallocate memory to accelerate computation
 Qwb     = zeros(WBMC.xsize, WBMC.xsize, 4);
@@ -71,36 +74,36 @@ Qwbf(:,:,4)     = 100*diag([1,20,8,3,3,3,3,  3,2,0.01,5,5,5,5]);
 
 % weightings for FB (floating-base) model
 % BS
-Qfb(:,:,1)  = 0.01*diag([0,10,5,8,5,0.01]);
-Rfb(3:4,3:4,1)  = 0.2*eye(2);
+Qfb(:,:,1)  = 0.01*diag([0,10,5, 2,1,0.01]);
+Rfb(3:4,3:4,1)  = 0.01*eye(2);
 Sfb(:,:,1)  = zeros(FBMC.ysize);
-Qfbf(:,:,1) = 100*diag([10,20,8,10,8,0.01]); 
+Qfbf(:,:,1) = 100*diag([1,20,8,  3,1,0.01]); 
 
 % FL1
-Qfb(:,:,2)  = 0.01*diag([0,10,5,8,2,0.01]);
+Qfb(:,:,2)  = 0.01*diag([0,10,5, 2,1,0.01]);
 Rfb(:,:,2)  = zeros(FBMC.usize);  
 Sfb(:,:,2)  = zeros(FBMC.ysize);
-Qfbf(:,:,2) = 100*diag([10,20,8,10,1,0.01]); 
+Qfbf(:,:,2) = 100*diag([1,20,8,  3,1,0.01]); 
 
 % FS
-Qfb(:,:,3)  = 0.01*diag([0,10,5,8,5,0.01]);
-Rfb(1:2,1:2,3)  = 0.1*eye(2);
+Qfb(:,:,3)  = 0.01*diag([0,10,5, 2,1,0.01]);
+Rfb(1:2,1:2,3)  = 0.01*eye(2);
 Sfb(:,:,3)  = zeros(FBMC.ysize);
-Qfbf(:,:,3) = 100*diag([10,20,8,10,8,0.01]);  
+Qfbf(:,:,3) = 100*diag([1,20,8,  3,1,0.01]);  
 
 % FL2
-Qfb(:,:,4)  = 0.01*diag([0,10,5,8,2,0.01]);
+Qfb(:,:,4)  = 0.01*diag([0,10,5, 2,1,0.01]);
 Rfb(:,:,4)  = zeros(FBMC.usize);
 Sfb(:,:,4)  = zeros(FBMC.ysize);
-Qfbf(:,:,4) = 100*diag([10,20,8,10,1,0.01]); 
+Qfbf(:,:,4) = 100*diag([1,20,8,  3,1,0.01]); 
 
 for mode = 1:4
     WBPhases(mode).set_running_cost(@JumpCost.running_cost_Info);
-    WBPhases(mode).set_terminal_cost(@JumpCost.jump_terminal_cost_Info);
+    WBPhases(mode).set_terminal_cost(@JumpCost.WB_jump_terminal_cost_Info);
     WBPhases(mode).set_weightings(Qwb(:,:,mode),Rwb(:,:,mode),Swb(:,:,mode),Qwbf(:,:,mode));
     
     FBPhases(mode).set_running_cost(@JumpCost.running_cost_Info);
-    FBPhases(mode).set_terminal_cost(@JumpCost.jump_terminal_cost_Info);
+    FBPhases(mode).set_terminal_cost(@JumpCost.FB_jump_terminal_cost_Info);
     FBPhases(mode).set_weightings(Qfb(:,:,mode),Rfb(:,:,mode),Sfb(:,:,mode),Qfbf(:,:,mode));
 end
 
@@ -130,7 +133,7 @@ for mode = 1:4
     WBDesiredState(mode).y = [WBDesiredRState.y, WBDesiredFState(mode).y];
 end
 
-FBDesiredState = struct('x', [0, -0.15, 0, params.vd, 0, 0]',... 
+FBDesiredState = struct('x', [0, -0.13, 0, params.vd, 0, 0]',... 
                         'u', [GRF;GRF],...
                         'y', zeros(4,1));          
 for mode = 1:4
@@ -148,24 +151,24 @@ WB_AL_ReB_params = repmat(struct('sigma',[],...
 % Stance phases do not have terminal constraint. AL params are empty                          
 % Ineq cq, cu, and cy
 WB_AL_ReB_params(1).delta       = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 0.1*ones(1,3), 0.1,.1];
-WB_AL_ReB_params(1).delta_min   = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 0.1*ones(1,3), 1e-3,1e-3];
+WB_AL_ReB_params(1).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4), 0.01*ones(1,3), 1e-3,1e-3];
 WB_AL_ReB_params(1).eps_ReB     = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3), 1e-3, 1e-3];
 
 WB_AL_ReB_params(3).delta       = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 0.1*ones(1,3), .1,0.1];
-WB_AL_ReB_params(3).delta_min   = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 0.1*ones(1,3), 1e-3,1e-3];
+WB_AL_ReB_params(3).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4), 0.01*ones(1,3), 1e-3,1e-3];
 WB_AL_ReB_params(3).eps_ReB     = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3), 1e-3, 1e-3];
 
 % Flight phase needs terminal constraint at TD
 WB_AL_ReB_params(2).sigma       = 5;
 WB_AL_ReB_params(2).lambda      = 0;
 WB_AL_ReB_params(2).delta       = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 0.1,0.1];
-WB_AL_ReB_params(2).delta_min   = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 1e-3,1e-3];
+WB_AL_ReB_params(2).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4), 1e-3,1e-3];
 WB_AL_ReB_params(2).eps_ReB     = [0.01*ones(1,2*4),0*ones(1,2*4), 1e-3, 1e-3];
 
 WB_AL_ReB_params(4).sigma   = 5;
 WB_AL_ReB_params(4).lambda  = 0;
 WB_AL_ReB_params(4).delta   = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 0.1,0.1];
-WB_AL_ReB_params(4).delta_min   = [0.1*ones(1,2*4), 0.1*ones(1,2*4), 1e-3,1e-3];
+WB_AL_ReB_params(4).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4), 1e-3,1e-3];
 WB_AL_ReB_params(4).eps_ReB = [0.01*ones(1,2*4),0*ones(1,2*4), 1e-3, 1e-3];
 
 FB_AL_ReB_params = struct('sigma',[],...
@@ -174,8 +177,8 @@ FB_AL_ReB_params = struct('sigma',[],...
                           'delta_min',[],...
                           'eps_ReB',[],...
                           'eps_smooth',1);
-FB_AL_ReB_params.delta      = [0.005, 0.005];
-FB_AL_ReB_params.delta_min  = [0.005, 0.005];
+FB_AL_ReB_params.delta      = [0.1, 0.1];
+FB_AL_ReB_params.delta_min  = [1e-4, 1e-4];
 FB_AL_ReB_params.eps_ReB    = [1e-3, 1e-3];
 for mode = 1:4
     % Initialize AL_ReB_params
@@ -183,6 +186,6 @@ for mode = 1:4
     % If constraint handle is not specified and there is no input
     % arguements, constraint handle and associated param would be empty
     WBPhases(mode).set_AL_ReB_params(WB_AL_ReB_params(mode));
-    FBPhases(mode).set_AL_ReB_params(); 
+    FBPhases(mode).set_AL_ReB_params(FB_AL_ReB_params); 
 end
 end

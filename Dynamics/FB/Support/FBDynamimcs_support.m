@@ -1,4 +1,4 @@
-function FBDynamimcs_support()
+function FBDynamimcs_support(FBMC2D)
 q_size = 3; %(x,z,pitch (theta))
 x_size = 6;
 u_size = 4; % ground reaction force F1 F2
@@ -10,23 +10,20 @@ u = sym('u',[u_size 1],'real'); % [F1; F2]
 p = sym('p',[4,1],'real'); % foothold location [p1; p2]
 s = sym('s', [2,1], 'real'); % contact state
 
-mc3DParams = get3DMCParams();
-mc2DParams = get2DMCParams(mc3DParams);
-
-% The recomputed inertia incorporates the leg inertia into the body
-[I, m] = recomputeInertia(mc2DParams);
+I = FBMC2D.Inertia;
+m = FBMC2D.mass;
 
 % continuous dynamics
 f = [qd;
-     u(1:2,1)/m + u(3:4)/m + [0,-9.81]';
+     s(1)*u(1:2,1)/m + s(2)*u(3:4)/m + [0,-9.81]';
      s(1)*(I\cross2D((p(1:2,1) - x(1:2,1)),u(1:2,1))) + s(2)*(I\cross2D((p(3:4,1) - x(1:2,1)),u(3:4,1)))];
 
 % partials of continuous dynamics       
 fx = jacobian(f, x);
 fu = jacobian(f, u);
 
-matlabFunction(f, 'file', 'Dynamics/FB/FBDynamics','vars',{x,u,p,s});
-matlabFunction(fx, fu, 'file','Dynamics/FB/FBDynamics_par','vars',{x,u,p,s});
+matlabFunction(f, 'file', 'Dynamics/FB/Support/FBDynamics','vars',{x,u,p,s});
+matlabFunction(fx, fu, 'file','Dynamics/FB/Support/FBDynamics_par','vars',{x,u,p,s});
 
 fprintf('Trunk Dynamics support funtions generated successfully!\n');
 end

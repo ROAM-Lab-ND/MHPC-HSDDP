@@ -160,8 +160,8 @@ classdef HybridSystemsDDP < handle
                 for idx = 1:DDP.n_Phases
                     AL_ReB_params(idx).eps_smooth = DDP.Phases(idx).AL_ReB_params.eps_smooth;
                 end
-            end            
-            
+            end    
+                       
             % Iterate
             first_NonzeroReB = 1;
             ou_iter = 1;           
@@ -275,11 +275,15 @@ classdef HybridSystemsDDP < handle
     
     methods (Static)
         function params = update_AL_ReB_params(params, h, options)
-            for i = 1:length(params)                
+            for i = 1:length(params)                    
                 if norm(cellfun(@norm, h)) > 0.05
                     params(i).lambda = params(i).lambda + h{i}*params(i).sigma;
                     params(i).sigma = options.beta_penalty * params(i).sigma; 
                 else
+                    if norm(cellfun(@norm, h)) > 0.01
+                        params(i).lambda = params(i).lambda + h{i}*params(i).sigma;
+                        params(i).sigma = 3 * params(i).sigma;
+                    end
                     params(i).eps_ReB = options.beta_ReB*params(i).eps_ReB;
                     if ~isempty(params(i).delta)
                         params(i).delta = options.beta_relax*params(i).delta;
