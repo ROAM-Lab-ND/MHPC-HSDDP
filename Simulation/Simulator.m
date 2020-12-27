@@ -206,7 +206,7 @@ classdef Simulator < handle
     end
     
     methods
-        function [X, predidx, collision] = run(sim, x0, delay, disturbInfo)
+        function [X, U, Y, t, predidx, collision] = run(sim, x0, t0, delay, disturbInfo)
             currentMode = sim.scheduledSeq(1);
             nextMode = sim.scheduledSeq(2);
             pidx = 1;
@@ -215,34 +215,48 @@ classdef Simulator < handle
             pushLoc = [];
             pushlinkidx = [];
             collision = 0;
-            % preallocat enough memomery for X to save time
-            X = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
+            % preallocat enough memomery for X,U,Y to save time
+            X = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10+1);
+            U = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
+            Y = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
+            t = zeros(1, sim.scheduledHorizons(1)+delay+10);
+            
             X(:,1) = x0;
             k = 1;
+            tk = t0;
             while 1
                 xk = X(:, k);
 %                 selft-collision detection
                 if sim.selfCollision(xk)
                     collision = 1;                   
-                    return
                 end
                 % falldown detection
                 if sim.fallDectection(xk,k,currentMode)
                     collision = 1; 
-                    return
                 end
 % %                 joint limit detection
 %                 if sim.jointLimitViolation(xk)
 %                     collision = 1; 
-%                     return
 %                 end
+
+                if collision == 1
+                    % remove surplus preallocated memory
+                    U(:, k:end) = [];
+                    X(:, k+1:end)=[]; 
+                    Y(:, k:end) = [];
+                    t(:, k:end) = [];
+                    return;
+                end
+                
                 % touchdown detection during flight phase
                 if any(currentMode == [2 4])
                     TD = sim.touchDown(xk,k,currentMode);
+                    % If touchdown, break
                     if any(TD)
                         break;
                     end
                 else
+                    % If maximum control horizon is reached (during stance), break
                     if k == sim.controlHorizon + 1
                         break;
                     end
@@ -250,7 +264,8 @@ classdef Simulator < handle
                 
                 if k <= sim.controlHorizon
                     uk = sim.run_Controller(xk, k, pidx);
-                else % execture last control command for late contact
+                % execture last control command for late contact
+                else 
                     uk = sim.run_Controller(xk, sim.controlHorizon, pidx);
                 end             
                 
@@ -259,13 +274,21 @@ classdef Simulator < handle
                     pushLoc = datasample(sim.bodyCloud,1,2); % random sample from body cloud
                     push = disturbInfo.magnitude*[cos(randn);sin(randn)];
                 end
-                [xk_next, y] = sim.model.dynamics(xk, uk, currentMode, push, pushLoc, pushlinkidx);
+                % execute continuous dynamics
+                [xk_next, yk] = sim.model.dynamics(xk, uk, currentMode, push, pushLoc, pushlinkidx);
+                U(:, k) = uk;
+                Y(:, k) = yk;
                 X(:, k+1) = xk_next;
+                t(:, k) = tk;
                 k = k + 1;
+                tk = tk + sim.model.dt;
                 predidx = k;
             end
+            % execute resetmap if either touchdown happens or maximum
+            % control horizon is reached
             [xk_next,~] = sim.model.resetmap(xk, currentMode, nextMode);
             X(:, k+1) = xk_next;
+            t(:, k) = tk;
             k = k + 1;
             predidx = k;
             
@@ -275,14 +298,20 @@ classdef Simulator < handle
             for kdelay = 1:delay-1
                 xk = X(:,k);
                 uk = sim.run_Controller(xk, kdelay, pidx);
-                [xk_next, y] = sim.model.dynamics(xk, uk, currentMode);
+                [xk_next, yk] = sim.model.dynamics(xk, uk, currentMode);
+                U(:, k) = uk;
+                Y(:, k) = yk;              
                 X(:,k+1) = xk_next;
+                t(:, k) = tk;
                 k = k + 1;
+                tk = tk + sim.model.dt;
             end
-            delayidx = k;
-            X(:,delayidx+1:end)=[]; % remove surplus preallocated memory
-            X(:,1) = []; % remove the initial condition
-            predidx = predidx - 1; % minus 1 since initial condition is removed
+            
+            % remove surplus preallocated memory
+            U(:, k:end) = [];
+            X(:, k+1:end)=[]; 
+            Y(:, k:end) = [];
+            t(:, k:end) = [];
         end
     end
     
