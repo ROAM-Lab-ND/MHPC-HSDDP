@@ -30,8 +30,8 @@ currentPhase = 1;
 
 %% Set problem data and optimization options
 problem_data.n_Phases       = 6;       % total nuber of phases
-problem_data.n_WBPhases     = 4;       % number of whole body phases
-problem_data.n_FBPhases     = 2;       % number of floating-base phases
+problem_data.n_WBPhases     = 6;       % number of whole body phases
+problem_data.n_FBPhases     = 0;       % number of floating-base phases
 problem_data.phaseSeq       = bounding.get_gaitSeq(currentPhase, problem_data.n_Phases+1);
 problem_data.dt             = dt;
 problem_data.t_horizons     = bounding.get_timeSeq(currentPhase, problem_data.n_Phases);
@@ -80,6 +80,8 @@ x0_opt = x0;
 x0_sim = x0;
 t0 = 0;
 X = [];
+totalCost = 0;
+J = 0;
 
 % Disturbance information
 % Disturbance start at 30th time step and ends at 60th time step
@@ -119,8 +121,9 @@ for i = 1:maxMPCIter
     % Run simulator
     % predidx indicates when delay = 0. This should be used as the initial
     % condition for the next MHPC planning.    
-    [X, U, Y, time, predidx, collision] = sim.run(x0_sim, t0, currentDelay, disturbInfo);
-        
+    [J, X, U, Y, time, predidx, collision] = sim.run(x0_sim, t0, currentDelay, disturbInfo);
+    totalCost = totalCost + J;
+    
     simTrajectory(i).X = X(:,1:end-1);
     simTrajectory(i).U = U;
     simTrajectory(i).Y = Y;
@@ -152,7 +155,7 @@ end
 
 %% save data
 filename = 'simData';
-save(filename, 'X');
+save(filename, 'simTrajectory', 'totalCost');
 
 %% Visualize motion
 % construct graphics and visualize data
@@ -160,7 +163,7 @@ graphicsOptions.body_active = 1;
 graphicsOptions.leg_active = 1;
 graphicsOptions.push_active = 0;
 graphicsOptions.GRF_acitive = 0;
-graphicsOptions.showPlan  = 1;
+graphicsOptions.showPlan  = 0;
 graphicsOptions.gapLoc = 0.96;
 graphicsOptions.gapWidth = 0.3;
 graphicsOptions.filename = 'GapJumping';

@@ -47,6 +47,14 @@ classdef Simulator < handle
         function u = run_Controller(sim, x, k, currentPhaseIdx)
             u = sim.controller.run(x, k, currentPhaseIdx);
         end
+        
+        function l = running_cost(sim, k, x, u, y, mode)
+            l = sim.controller.WBPhases(mode).running_cost_Info(k,x,u,y,'nopar');
+        end
+        
+        function phi= terminal_cost(sim, x, mode)
+            phi = sim.controller.WBPhases(mode).terminal_cost_Info(x, 'nopar');
+        end
     end
     
     methods % collistion and touchdown detection
@@ -206,7 +214,7 @@ classdef Simulator < handle
     end
     
     methods
-        function [X, U, Y, t, predidx, collision] = run(sim, x0, t0, delay, disturbInfo)
+        function [J, X, U, Y, t, predidx, collision] = run(sim, x0, t0, delay, disturbInfo)
             currentMode = sim.scheduledSeq(1);
             nextMode = sim.scheduledSeq(2);
             pidx = 1;
@@ -224,6 +232,7 @@ classdef Simulator < handle
             X(:,1) = x0;
             k = 1;
             tk = t0;
+            J = 0;            
             while 1
                 xk = X(:, k);
 %                 selft-collision detection
@@ -268,7 +277,7 @@ classdef Simulator < handle
                 else 
                     uk = sim.run_Controller(xk, sim.controlHorizon, pidx);
                 end             
-                
+                                
                 if disturbInfo.active && (k >= disturbInfo.start) && (k<=disturbInfo.end)
                     pushlinkidx = 1;
                     pushLoc = datasample(sim.bodyCloud,1,2); % random sample from body cloud
@@ -276,6 +285,8 @@ classdef Simulator < handle
                 end
                 % execute continuous dynamics
                 [xk_next, yk] = sim.model.dynamics(xk, uk, currentMode, push, pushLoc, pushlinkidx);
+                J = J + sim.running_cost(k, xk, uk, yk, currentMode);
+                
                 U(:, k) = uk;
                 Y(:, k) = yk;
                 X(:, k+1) = xk_next;
@@ -286,6 +297,7 @@ classdef Simulator < handle
             end
             % execute resetmap if either touchdown happens or maximum
             % control horizon is reached
+            J = J + sim.terminal_cost(xk, currentMode);
             [xk_next,~] = sim.model.resetmap(xk, currentMode, nextMode);
             X(:, k+1) = xk_next;
             t(:, k) = tk;
@@ -299,6 +311,7 @@ classdef Simulator < handle
                 xk = X(:,k);
                 uk = sim.run_Controller(xk, kdelay, pidx);
                 [xk_next, yk] = sim.model.dynamics(xk, uk, currentMode);
+                J = J + sim.running_cost(kdelay, xk, uk, yk, currentMode);
                 U(:, k) = uk;
                 Y(:, k) = yk;              
                 X(:,k+1) = xk_next;
