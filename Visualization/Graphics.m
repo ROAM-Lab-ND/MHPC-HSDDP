@@ -43,9 +43,10 @@ classdef Graphics < handle
                 G.trajectory2D(pidx).U = simTrajectory(pidx).U;
                 G.trajectory2D(pidx).Y = simTrajectory(pidx).Y;
                 
-                [pitch_d, pos2D_d, q2D_d] = G.get2DConfig(simTrajectory(pidx).Xopt);
-                G.trajectory2D(pidx).x_c_d = [pitch_d; pos2D_d];
+                [pitch_d, pos2D_d, q2D_d, WBidx] = G.get2DPlannedConfig(simTrajectory(pidx).Xopt);
+                G.trajectory2D(pidx).x_c_d = [pos2D_d;pitch_d];
                 G.trajectory2D(pidx).q_d   = q2D_d;
+                G.trajectory2D(pidx).WBidx = WBidx;
                 
                 [rpy, pos, q] = G.get3DConfig(simTrajectory(pidx).X);
                 G.trajectory3D(pidx).x_c = [rpy; pos];
@@ -54,10 +55,11 @@ classdef Graphics < handle
                 G.trajectory3D(pidx).q = q;
                 G.trajectory3D(pidx).control_params = struct([]);  % place holder
                 
-                [rpy_d, pos_d, q_d] = G.get3DConfig(simTrajectory(pidx).Xopt);
+                [rpy_d, pos_d, q_d, WBidx] = G.get3DPlannedConfig(simTrajectory(pidx).Xopt);
                 G.trajectory3D(pidx).x_c_d = [rpy_d; pos_d];
                 G.trajectory3D(pidx).x_d_d.leg_state = {1,1,1,1}';
                 G.trajectory3D(pidx).q_d = q_d;
+                G.trajectory3D(pidx).WBidx = WBidx;
             end
         end
     end
@@ -84,7 +86,9 @@ classdef Graphics < handle
             set(bigAnim,'Renderer','OpenGL')
             drawFloor()
             drawGap(options.gapLoc, options.gapWidth);
-            ln_plan = plot3(0,0,0,'r--','linewidth',1.5);
+            
+            ln_WBplan = plot3(0,0,0,'r--','linewidth',1);
+            ln_FBplan = plot3(0,0,0,'b--','linewidth',1);
             
             l = G.Gmodel.p_hip{1}(1) - G.Gmodel.p_hip{4}(1);
             w = -G.Gmodel.p_hip{1}(2) + G.Gmodel.p_hip{4}(2);
@@ -119,13 +123,15 @@ classdef Graphics < handle
             for pidx = 1:length(G.trajectory3D)
                 x_c           = G.trajectory3D(pidx).x_c(:,1:step:end); % continuously updating part of state
                 x_d           = G.trajectory3D(pidx).x_d(:,1:step:end); % discretely updating part of state
-                q             = G.trajectory3D(pidx).q(:,1:step:end);        
-                t        = G.trajectory3D(pidx).t(:,1:step:end);
+                q             = G.trajectory3D(pidx).q(:,1:step:end);                                   
+                x_c_d         = G.trajectory3D(pidx).x_c_d;
+                t        = G.trajectory3D(pidx).t(:,1:step:end);    
                 size_x_c = size(x_c);
-                
+                WBidx         = G.trajectory3D(pidx).WBidx;
                 % Update planned trajectory
                 if options.showPlan
-                    set(ln_plan, 'XData', x_c(4,:), 'YData', x_c(5,:), 'ZData',x_c(6,:));
+                    set(ln_WBplan, 'XData', x_c_d(4,1:WBidx), 'YData', x_c_d(5,1:WBidx), 'ZData',x_c_d(6,1:WBidx));
+                    set(ln_FBplan, 'XData', x_c_d(4,WBidx+1:end), 'YData', x_c_d(5,WBidx+1:end), 'ZData',x_c_d(6,WBidx+1:end));
                 end
                 
                 % Update actual configuration
@@ -196,10 +202,12 @@ classdef Graphics < handle
             h(3)=patch(FkneeWorld(1,:),FkneeWorld(2,:),'green');
             h(4)=patch(BhipWorld(1,:),BhipWorld(2,:),'blue');
             h(5)=patch(BkneeWorld(1,:),BkneeWorld(2,:),'green');
-            ln_plan = plot(0,0,'m--','linewidth', 1.5);
             plot([-1 options.gapLoc-options.gapWidth/2; options.gapLoc+options.gapWidth/2 4]', ...
                         -0.404*ones(2,2),'k-','linewidth',1.5);
             plot([-0:0.1:2],gapFunc(0:0.1:2),'k--');
+            ln_WBplan = plot(0,0,'m--','linewidth', 1);
+            ln_FBplan = plot(0,0,'b--','linewidth', 1);
+            
             ylim([-1 3]);
             
             if ~isempty(F_ext)
@@ -222,8 +230,11 @@ classdef Graphics < handle
                 
                 % Update planned trajectory
                 if options.showPlan
-                    set(ln_plan, 'XData', G.trajectory2D(pidx).x_c(1,:), ...
-                             'YData', G.trajectory2D(pidx).x_c(2,:));   
+                    WBidx = G.trajectory2D(pidx).WBidx;
+                    set(ln_WBplan, 'XData', G.trajectory2D(pidx).x_c_d(1,1:WBidx), ...
+                                   'YData', G.trajectory2D(pidx).x_c_d(2,1:WBidx));   
+                    set(ln_FBplan, 'XData', G.trajectory2D(pidx).x_c_d(1,WBidx+1:end), ...
+                                   'YData', G.trajectory2D(pidx).x_c_d(2,WBidx+1:end)); 
                 end                             
                 
                 % Update actual configuration 
@@ -298,13 +309,14 @@ classdef Graphics < handle
     
     methods
         function plot(G, input)
-            t = [G.trajectory2D.t];
-            x = [G.trajectory2D.x_c(1,:)];
-            z = [G.trajectory2D.x_c(2,:)];
-            pitch = [G.trajectory2D.x_c(3,:)];
-            q = [G.trajectory2D.q];
-%             torque = [G.trajectory2D.U];
-%             GRF = [G.trajectory2D.Y];
+            t = [G.trajectory2D(:).t];
+            x_c = [G.trajectory2D(:).x_c];
+            x = x_c(1,:);
+            z = x_c(2,:);
+            pitch = x_c(3,:);
+            q = [G.trajectory2D(:).q];
+            torque = [G.trajectory2D.U];
+            GRF = [G.trajectory2D.Y];
             
             figure;
             switch input
@@ -319,11 +331,11 @@ classdef Graphics < handle
                 case 'pos'
                     subplot(211)
                     plot(t, x, 'linewidth', 1.5);
-                    ylabel('x (mm)', 'interpreter','latex');
+                    ylabel('x (m)', 'interpreter','latex');
                     set(gca, 'Fontsize', 12);
                     subplot(212)
                     plot(t, z, 'linewidth', 1.5);
-                    ylabel('z (mm)', 'interpreter','latex');
+                    ylabel('z (m)', 'interpreter','latex');
                     xlabel('time', 'interpreter','latex');
                 case 'pitch'
                     plot(t, pitch, 'linewidth', 1.5);
@@ -335,6 +347,24 @@ classdef Graphics < handle
                     ylabel('joint angle (rad)', 'interpreter','latex');
                     l = legend('$J_1$','$J_2$','$J_3$','$J_4$');
                     l.Interpreter = 'latex';
+                case 'GRF'
+                    subplot(211)
+                    plot([t',t'], GRF(1:2,:)', 'linewidth', 1.5);
+                    hold on
+                    plot(t, -0.6*abs(GRF(2,:)), '--','linewidth', 1.5);
+                    plot(t, 0.6*abs(GRF(2,:)), '--','linewidth', 1.5);
+                    xlabel('time', 'interpreter','latex');
+                    ylabel('force ($N$)', 'interpreter','latex');
+                    l = legend('$F_x$','$F_z$','$-\mu |F_z|$','$\mu |F_z|$');
+                    l.Interpreter = 'latex';
+                    
+                    subplot(212)         
+                    plot([t',t'], GRF(3:4,:)', 'linewidth', 1.5);
+                    hold on
+                    plot(t, -0.6*abs(GRF(4,:)), '--','linewidth', 1.5);
+                    plot(t, 0.6*abs(GRF(4,:)), '--','linewidth', 1.5);
+                    xlabel('time', 'interpreter','latex');
+                    ylabel('force ($N$)', 'interpreter','latex');
             end
             set(gca, 'Fontsize', 12);
         end
@@ -359,6 +389,42 @@ classdef Graphics < handle
             rpy = [zeros(1,N); x_c_2D(3,:); zeros(1,N)];    % Euler angle
             qjoint = [zeros(1,N);pi/2+q_2D(1,:);q_2D(2,:); zeros(1,N);pi/2+q_2D(1,:);q_2D(2,:);  % zero hip aligns body in this case
                 zeros(1,N);pi/2+q_2D(3,:);q_2D(4,:); zeros(1,N);pi/2+q_2D(3,:);q_2D(4,:)]; % joint angle                
+        end
+        
+        function [pitch,pos,qjoint,WBidx] = get2DPlannedConfig(Xopt)
+            % X is a cell array
+            pitch = [];
+            pos = [];
+            qjoint = [];
+            for pidx = 1:length(Xopt)
+                pitch = [pitch, Xopt{pidx}(3,:)];
+                pos = [pos, Xopt{pidx}(1:2,:)];
+                if size(Xopt{pidx},1) == 14 % whole body state
+                    qjoint = [qjoint, Xopt{pidx}(8:end, :)];
+                end
+            end
+            WBidx = size(qjoint, 2);
+        end
+        
+        function [rpy,pos,qjoint,WBidx] = get3DPlannedConfig(Xopt)
+            rpy = [];
+            pos = [];
+            qjoint = [];
+            for pidx = 1:length(Xopt)
+                if size(Xopt{pidx},1) == 14
+                    [rpytemp,postemp,qjointtemp] = Graphics.get3DConfig(Xopt{pidx});
+                    rpy = [rpy, rpytemp];
+                    pos = [pos, postemp];
+                    qjoint = [qjoint, qjointtemp];
+                else
+                    N = size(Xopt{pidx}, 2);
+                    rpytemp = [zeros(1,N); Xopt{pidx}(3,:); zeros(1,N)];
+                    postemp = [Xopt{pidx}(1,:); zeros(1,N); Xopt{pidx}(2,:)+0.404];
+                    rpy = [rpy, rpytemp];
+                    pos = [pos, postemp];
+                end
+                WBidx = size(qjoint, 2);
+            end
         end
     end
 end

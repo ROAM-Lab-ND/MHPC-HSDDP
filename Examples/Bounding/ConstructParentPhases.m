@@ -71,25 +71,25 @@ Qwbf(:,:,4)     = 100*diag([0,20,8,3,3,3,3,  10,2,0.01,5,5,5,5]);
 Qfb(:,:,1)  = 0.01*diag([0,10,5,8,5,0.01]);
 Rfb(3:4,3:4,1)  = 0.2*eye(2);
 Sfb(:,:,1)  = zeros(FBMC.ysize);
-Qfbf(:,:,1) = 100*diag([10,20,8,10,8,0.01]); 
+Qfbf(:,:,1) = 100*diag([0,20,8,10,8,0.01]); 
 
 % FL1
 Qfb(:,:,2)  = 0.01*diag([0,10,5,8,2,0.01]);
 Rfb(:,:,2)  = zeros(FBMC.usize);  
 Sfb(:,:,2)  = zeros(FBMC.ysize);
-Qfbf(:,:,2) = 100*diag([10,20,8,10,1,0.01]); 
+Qfbf(:,:,2) = 100*diag([0,20,8,10,1,0.01]); 
 
 % FS
 Qfb(:,:,3)  = 0.01*diag([0,10,5,8,5,0.01]);
 Rfb(1:2,1:2,3)  = 0.1*eye(2);
 Sfb(:,:,3)  = zeros(FBMC.ysize);
-Qfbf(:,:,3) = 100*diag([10,20,8,10,8,0.01]);  
+Qfbf(:,:,3) = 100*diag([0,20,8,10,8,0.01]);  
 
 % FL2
 Qfb(:,:,4)  = 0.01*diag([0,10,5,8,2,0.01]);
 Rfb(:,:,4)  = zeros(FBMC.usize);
 Sfb(:,:,4)  = zeros(FBMC.ysize);
-Qfbf(:,:,4) = 100*diag([10,20,8,10,1,0.01]); 
+Qfbf(:,:,4) = 100*diag([0,20,8,10,1,0.01]); 
 
 for mode = 1:4
     WBPhases(mode).set_running_cost(@BoundCost.running_cost_Info);
@@ -117,7 +117,7 @@ WBDesiredFState(3).x = [[0,-0.1325,-pi/40,0.33*pi,-0.48*pi,0.33*pi,-0.75*pi]';
 WBDesiredFState(4).x = [[0,-0.1490,-pi/25,0.35*pi,-0.7*pi,0.25*pi,-0.60*pi]';
                          params.vd;-1;zeros(5,1)];
           
-WBDesiredRState.x = [0,-0.15,0,0,0,0,0, params.vd, 0, 0,0,0,0,0]';
+WBDesiredRState.x = [0,-0.13,0,0,0,0,0, params.vd, 0, 0,0,0,0,0]';
 WBDesiredRState.u = zeros(4,1);
 WBDesiredRState.y = [GRF;GRF];
 
@@ -139,27 +139,31 @@ end
 WB_AL_ReB_params = repmat(struct('sigma',[],...
                                  'lambda',[],...
                                  'delta',[],...
+                                 'delta_min',[],...
                                  'eps_ReB',[],...
                                  'eps_smooth',1),[4,1]);
 % Stance phases do not have terminal constraint. AL params are empty                          
 % Ineq cq, cu, and cy
-WB_AL_ReB_params(1).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
-WB_AL_ReB_params(1).eps_ReB = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3)];
+WB_AL_ReB_params(1).delta       = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
+WB_AL_ReB_params(1).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4), 0.01*ones(1,3)];
+WB_AL_ReB_params(1).eps_ReB     = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3)];
 
-WB_AL_ReB_params(3).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
-WB_AL_ReB_params(3).eps_ReB = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3)];
+WB_AL_ReB_params(3).delta       = [0.2*ones(1,2*4), 0.4*ones(1,2*4), 0.4*ones(1,3)];
+WB_AL_ReB_params(3).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4), 0.01*ones(1,3)];
+WB_AL_ReB_params(3).eps_ReB     = [0.01*ones(1,2*4),  0*ones(1,2*4), 0.01*ones(1,3)];
 
 % Flight phase needs terminal constraint at TD
-WB_AL_ReB_params(2).sigma   = 5;
-WB_AL_ReB_params(2).lambda  = 0;
-WB_AL_ReB_params(2).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
-WB_AL_ReB_params(2).eps_ReB = [0.01*ones(1,2*4),0*ones(1,2*4)];
+WB_AL_ReB_params(2).sigma       = 5;
+WB_AL_ReB_params(2).lambda      = 0;
+WB_AL_ReB_params(2).delta       = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
+WB_AL_ReB_params(2).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4)];
+WB_AL_ReB_params(2).eps_ReB     = [0.01*ones(1,2*4),0*ones(1,2*4)];
 
 WB_AL_ReB_params(4).sigma   = 5;
 WB_AL_ReB_params(4).lambda  = 0;
 WB_AL_ReB_params(4).delta   = [0.2*ones(1,2*4), 0.4*ones(1,2*4)];
+WB_AL_ReB_params(4).delta_min   = [0.01*ones(1,2*4), 0.01*ones(1,2*4)];
 WB_AL_ReB_params(4).eps_ReB = [0.01*ones(1,2*4),0*ones(1,2*4)];
-
 
 for mode = 1:4
     % Initialize AL_ReB_params

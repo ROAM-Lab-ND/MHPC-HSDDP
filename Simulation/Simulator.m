@@ -217,8 +217,8 @@ classdef Simulator < handle
             collision = 0;
             % preallocat enough memomery for X,U,Y to save time
             X = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10+1);
-            U = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
-            Y = zeros(sim.model.xsize, sim.scheduledHorizons(1)+delay+10);
+            U = zeros(sim.model.usize, sim.scheduledHorizons(1)+delay+10);
+            Y = zeros(sim.model.ysize, sim.scheduledHorizons(1)+delay+10);
             t = zeros(1, sim.scheduledHorizons(1)+delay+10);
             
             X(:,1) = x0;

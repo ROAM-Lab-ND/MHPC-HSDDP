@@ -78,7 +78,7 @@ classdef mhpcController < RobotController
         
         function runHSDDP(C, x0, options)
             C.initializeHSDDP();
-            
+                       
             C.HybridTrajectory(1).set_nom_initial_condition(x0);
             
             heuristic_bounding_controller(C.WBModel, C.problem_data.phaseSeq(1:C.problem_data.n_WBPhases), C.HybridTrajectory(1:C.problem_data.n_WBPhases));

@@ -5,7 +5,7 @@ clc
 addpath(genpath(pwd));
 rmpath('Backup', 'Prep');
 dt = 0.001;
-FIRSTRUN = 0;
+FIRSTRUN = 1;
 
 % build whole-body model for planar mc
 WBMC2D = PlanarQuadruped(dt);
@@ -13,26 +13,25 @@ build2DminiCheetah(WBMC2D);
 
 % build floating-base model for planar mc
 FBMC2D = PlanarFloatingBase(dt);
-build2DminiCheetahFB(FBMC2D);
 
 % If this is the first time, run support functions to generate neccessary
 % functions
 if FIRSTRUN
-    WBDynamics_support(WBMC2D);
-    FBDynamimcs_support();
-    WB_terminal_constr_support(WBMC2D);
+%     WBDynamics_support(WBMC2D);
+    FBDynamimcs_support(FBMC2D);
+%     WB_terminal_constr_support(WBMC2D);
 end
 
 %% Define a bounding gait
 % One bounding gait cycle has 4 phases (1->BS,2->FL1,3->FS,4->FL2)
 bounding = Gait('bounding');
-bounding.setBasicTimings([0.08,0.12,0.08,0.12]);
+bounding.setBasicTimings([0.08,0.08,0.08,0.08]);
 currentPhase = 1; 
 
 %% Set problem data and optimization options
-problem_data.n_Phases       = 6;       % total nuber of phases
-problem_data.n_WBPhases     = 6;       % number of whole body phases
-problem_data.n_FBPhases     = 0;       % number of floating-base phases
+problem_data.n_Phases       = 8;       % total nuber of phases
+problem_data.n_WBPhases     = 4;       % number of whole body phases
+problem_data.n_FBPhases     = 4;       % number of floating-base phases
 problem_data.phaseSeq       = bounding.get_gaitSeq(currentPhase, problem_data.n_Phases+1);
 problem_data.dt             = dt;
 problem_data.t_horizons     = bounding.get_timeSeq(currentPhase, problem_data.n_Phases);
@@ -43,7 +42,7 @@ problem_data.vd             = 1;     % desired forward speed m/s
 
 options.alpha            = 0.1;        % linear search update param
 options.gamma            = 0.01;       % scale the expected cost reduction
-options.beta_penalty     = 4;          % penalty update param
+options.beta_penalty     = 8;          % penalty update param
 options.beta_relax       = 0.1;        % relaxation update param
 options.beta_reg         = 2;          % regularization update param
 options.beta_ReB         = 10;
@@ -55,6 +54,7 @@ options.AL_active        = 1;          % Augmented Lagrangian active
 options.ReB_active       = 1;          % Reduced barrier active
 options.feedback_active  = 1;          % Smoothness active
 options.smooth_active    = 0;
+options.parCalc_active   = 1;          % compute cost and dynamics partials in forward sweep (default)
 options.Debug            = 1;          % Debug active
                             
 %% Run HSDDP
