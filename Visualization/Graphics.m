@@ -85,7 +85,9 @@ classdef Graphics < handle
             set(bigAnim,'Color','w');         % Background colo
             set(bigAnim,'Renderer','OpenGL')
             drawFloor()
-            drawGap(options.gapLoc, options.gapWidth);
+            if options.gapActive
+             drawGap(options.gapLoc, options.gapWidth);
+            end
             
             ln_WBplan = plot3(0,0,0,'r--','linewidth',1);
             ln_FBplan = plot3(0,0,0,'b--','linewidth',1);
@@ -202,9 +204,12 @@ classdef Graphics < handle
             h(3)=patch(FkneeWorld(1,:),FkneeWorld(2,:),'green');
             h(4)=patch(BhipWorld(1,:),BhipWorld(2,:),'blue');
             h(5)=patch(BkneeWorld(1,:),BkneeWorld(2,:),'green');
-            plot([-1 options.gapLoc-options.gapWidth/2; options.gapLoc+options.gapWidth/2 4]', ...
-                        -0.404*ones(2,2),'k-','linewidth',1.5);
-            plot([-0:0.1:2],gapFunc(0:0.1:2),'k--');
+            if options.gapActive
+                plot([-1 options.gapLoc-options.gapWidth/2; options.gapLoc+options.gapWidth/2 4]', ...
+                    -0.404*ones(2,2),'k-','linewidth',1.5);
+                plot([-0:0.1:2],gapFunc(0:0.1:2),'k--');
+            end
+            
             ln_WBplan = plot(0,0,'m--','linewidth', 1);
             ln_FBplan = plot(0,0,'b--','linewidth', 1);
             

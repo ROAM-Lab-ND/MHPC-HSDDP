@@ -18,22 +18,18 @@ classdef mhpcController < RobotController
     end
     
     methods % constructor
-        function C = mhpcController(WBModel, FBModel, gait, Problem_data, name)
+        function C = mhpcController(WBModel, FBModel, gait, Problem_data, options)
             if nargin > 0
-                initialization(C, WBModel, FBModel, gait, Problem_data,name);
+                initialization(C, WBModel, FBModel, gait, Problem_data,options);
             end
         end
                       
-        function initialization(C,WBModel, FBModel, gait, Problem_data,name)
+        function initialization(C,WBModel, FBModel, gait, Problem_data,options)
             C.WBModel = WBModel;
             C.FBModel = FBModel;
             C.gait = gait;                       
             C.problem_data = Problem_data;
-            if strcmp(name, 'bounding')
-                [C.WBPhases, C.FBPhases] = ConstructParentPhases(WBModel, FBModel,Problem_data);
-            elseif strcmp(name, 'jumping')
-                [C.WBPhases, C.FBPhases] = ConstructParentPhasesJumping(WBModel, FBModel,Problem_data);
-            end            
+            [C.WBPhases, C.FBPhases] = ConstructParentPhases(WBModel, FBModel,Problem_data,options);
         end
         
         function initializeHSDDP(C)
