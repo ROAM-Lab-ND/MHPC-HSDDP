@@ -34,34 +34,64 @@ classdef Graphics < handle
     end
     
     methods
-        function setTrajectory(G, simTrajectory)
-            for pidx = 1:length(simTrajectory)
-                [pitch, pos2D, q2D] = G.get2DConfig(simTrajectory(pidx).X);
+        function setTrajectory(G, varargin)
+            assert(nargin>=4);
+            fprintf("nargin = %d", nargin);
+            X = varargin{1};
+            U = varargin{2};
+            Y = varargin{3};
+            t = [];
+            if nargin > 4
+                t = varargin{4};
+            end
+            Xopt = [];
+            if nargin > 5
+                Xopt = varargin{5};
+            end
+            for pidx = 1:size(X,2)
+                [pitch, pos2D, q2D] = G.get2DConfig(X{pidx});
                 G.trajectory2D(pidx).x_c = [pos2D;pitch];
-                G.trajectory2D(pidx).q   = q2D;
-                G.trajectory2D(pidx).t = simTrajectory(pidx).t;
-                G.trajectory2D(pidx).U = simTrajectory(pidx).U;
-                G.trajectory2D(pidx).Y = simTrajectory(pidx).Y;
+                G.trajectory2D(pidx).q   = q2D;                
+                G.trajectory2D(pidx).U = U{pidx};
+                G.trajectory2D(pidx).Y = Y{pidx};
+                if ~isempty(t)
+                    G.trajectory2D(pidx).t = t{pidx};
+                    G.trajectory3D(pidx).t = t{pidx};
+                else
+                    G.trajectory2D(pidx).t = [];
+                    G.trajectory3D(pidx).t = [];
+                end
+                if ~isempty(Xopt)
+                    [pitch_d, pos2D_d, q2D_d, WBidx] = G.get2DPlannedConfig(Xopt{pidx});
+                    G.trajectory2D(pidx).x_c_d = [pos2D_d;pitch_d];
+                    G.trajectory2D(pidx).q_d   = q2D_d;
+                    G.trajectory2D(pidx).WBidx = WBidx;
+                else
+                    G.trajectory2D(pidx).x_c_d = [];
+                    G.trajectory2D(pidx).q_d   = [];
+                    G.trajectory2D(pidx).WBidx = 0;
+                end                
                 
-                [pitch_d, pos2D_d, q2D_d, WBidx] = G.get2DPlannedConfig(simTrajectory(pidx).Xopt);
-                G.trajectory2D(pidx).x_c_d = [pos2D_d;pitch_d];
-                G.trajectory2D(pidx).q_d   = q2D_d;
-                G.trajectory2D(pidx).WBidx = WBidx;
-                
-                [rpy, pos, q] = G.get3DConfig(simTrajectory(pidx).X);
+                [rpy, pos, q] = G.get3DConfig(X{pidx});
                 G.trajectory3D(pidx).x_c = [rpy; pos];
                 G.trajectory3D(pidx).x_d.leg_state = {1,1,1,1}';
-                G.trajectory3D(pidx).t = simTrajectory(pidx).t;
                 G.trajectory3D(pidx).q = q;
                 G.trajectory3D(pidx).control_params = struct([]);  % place holder
                 
-                [rpy_d, pos_d, q_d, WBidx] = G.get3DPlannedConfig(simTrajectory(pidx).Xopt);
-                G.trajectory3D(pidx).x_c_d = [rpy_d; pos_d];
-                G.trajectory3D(pidx).x_d_d.leg_state = {1,1,1,1}';
-                G.trajectory3D(pidx).q_d = q_d;
-                G.trajectory3D(pidx).WBidx = WBidx;
-            end
+                if ~isempty(Xopt)
+                    [rpy_d, pos_d, q_d, WBidx] = G.get3DPlannedConfig(Xopt{pidx});
+                    G.trajectory3D(pidx).x_c_d = [rpy_d; pos_d];
+                    G.trajectory3D(pidx).x_d_d.leg_state = {1,1,1,1}';
+                    G.trajectory3D(pidx).q_d = q_d;
+                    G.trajectory3D(pidx).WBidx = WBidx;
+                else
+                    G.trajectory3D(pidx).x_c_d = [];
+                    G.trajectory3D(pidx).q_d = [];
+                    G.trajectory3D(pidx).WBidx = 0;
+                end                
+            end                   
         end
+               
     end
     
     methods
@@ -89,8 +119,8 @@ classdef Graphics < handle
              drawGap(options.gapLoc, options.gapWidth);
             end
             
-            ln_WBplan = plot3(0,0,0,'r--','linewidth',1);
-            ln_FBplan = plot3(0,0,0,'b--','linewidth',1);
+            ln_WBplan = plot3(0,0,0,'r','linewidth',2);
+            ln_FBplan = plot3(0,0,0,'b','linewidth',2);
             
             l = G.Gmodel.p_hip{1}(1) - G.Gmodel.p_hip{4}(1);
             w = -G.Gmodel.p_hip{1}(2) + G.Gmodel.p_hip{4}(2);
@@ -105,14 +135,14 @@ classdef Graphics < handle
                         
             % Set camera and light
             camproj('perspective');
-            camtarget([-0.4, -0.4, +0.2])
-            view([65 10])
-            camup ([0,0,1]);
-            camva(1.3)
+            camtarget([-0.4, +2, -1])
+            view([5 20])
+            camup ([0,0.4,1]);
+            camva(1.1)
             axis off
             box off
             axis equal
-            light('Position',[5 20 12 ],'Style','local','Color',[.7 .7 .7]);
+            light('Position',[5 10 12 ],'Style','local','Color',[.7 .7 .7]);
             drawnow();
             
             updateObject(Quad.body,[0 0 1]',eye(3));
@@ -121,17 +151,17 @@ classdef Graphics < handle
             
             M = struct('cdata',[],'colormap',[]);
             
-            step = 10;            
+            step = 5;            
             for pidx = 1:length(G.trajectory3D)
                 x_c           = G.trajectory3D(pidx).x_c(:,1:step:end); % continuously updating part of state
                 x_d           = G.trajectory3D(pidx).x_d(:,1:step:end); % discretely updating part of state
                 q             = G.trajectory3D(pidx).q(:,1:step:end);                                   
                 x_c_d         = G.trajectory3D(pidx).x_c_d;
-                t        = G.trajectory3D(pidx).t(:,1:step:end);    
                 size_x_c = size(x_c);
-                WBidx         = G.trajectory3D(pidx).WBidx;
+               
                 % Update planned trajectory
-                if options.showPlan
+                if options.showPlan && (~isempty(x_c_d))
+                    WBidx         = G.trajectory3D(pidx).WBidx;
                     set(ln_WBplan, 'XData', x_c_d(4,1:WBidx), 'YData', x_c_d(5,1:WBidx), 'ZData',x_c_d(6,1:WBidx));
                     set(ln_FBplan, 'XData', x_c_d(4,WBidx+1:end), 'YData', x_c_d(5,WBidx+1:end), 'ZData',x_c_d(6,WBidx+1:end));
                 end
@@ -165,7 +195,8 @@ classdef Graphics < handle
                     end
                     
                     figure(198)
-                    camtarget([p(1),p(2), .2]);
+                    camtarget([p(1),p(2)+2, -0.5]);
+%                     campos([p(1),0,0]);
                     drawnow;
                     Frame = getframe;
                     M(end+1) = Frame;
@@ -198,20 +229,22 @@ classdef Graphics < handle
             
             %% Animition intilization
             f=figure;
-            h(1)=patch(bodyWorld(1,:),bodyWorld(2,:),'red');
+            h(1)=patch(bodyWorld(1,:),bodyWorld(2,:),[0 0.4470 0.7410]);
             hold on;
-            h(2)=patch(FhipWorld(1,:),FhipWorld(2,:),'blue');
-            h(3)=patch(FkneeWorld(1,:),FkneeWorld(2,:),'green');
-            h(4)=patch(BhipWorld(1,:),BhipWorld(2,:),'blue');
-            h(5)=patch(BkneeWorld(1,:),BkneeWorld(2,:),'green');
+            h(2)=patch(FhipWorld(1,:),FhipWorld(2,:),[0.7647,0.7686,0.7882]);
+            h(3)=patch(FkneeWorld(1,:),FkneeWorld(2,:),[0.7647,0.7686,0.7882]);
+            h(4)=patch(BhipWorld(1,:),BhipWorld(2,:),[0.7647,0.7686,0.7882]);
+            h(5)=patch(BkneeWorld(1,:),BkneeWorld(2,:),[0.7647,0.7686,0.7882]);
             if options.gapActive
                 plot([-1 options.gapLoc-options.gapWidth/2; options.gapLoc+options.gapWidth/2 4]', ...
                     -0.404*ones(2,2),'k-','linewidth',1.5);
                 plot([-0:0.1:2],gapFunc(0:0.1:2),'k--');
+            else
+                plot([-1 4],-0.404*ones(1,2),'k-','linewidth',1.5);
             end
             
-            ln_WBplan = plot(0,0,'m--','linewidth', 1);
-            ln_FBplan = plot(0,0,'b--','linewidth', 1);
+            ln_WBplan = plot(0,0,'r','linewidth', 2.0);
+            ln_FBplan = plot(0,0,'b','linewidth', 2.0);
             
             ylim([-1 3]);
             
@@ -220,8 +253,10 @@ classdef Graphics < handle
                 qv.Color = 'magenta';
                 qv.MaxHeadSize = 1;
             end
-            th = text(0,0.5,'t = 0 s');
-            axis([-1 4 -1 1]);
+            if ~isempty(G.trajectory2D(1).t)
+                th = text(0,0.5,'t = 0 s');
+            end            
+            axis([-1 3 -1 1]);
             axis equal
             axis manual
             
@@ -231,10 +266,10 @@ classdef Graphics < handle
             im_idx = 1;
             
             for pidx = 1:length(G.trajectory2D)
-                len_phase = length(G.trajectory2D(pidx).t);
+                len_phase = size(G.trajectory2D(pidx).x_c,2);
                 
                 % Update planned trajectory
-                if options.showPlan
+                if options.showPlan && (~isempty(G.trajectory2D(pidx).x_c_d))
                     WBidx = G.trajectory2D(pidx).WBidx;
                     set(ln_WBplan, 'XData', G.trajectory2D(pidx).x_c_d(1,1:WBidx), ...
                                    'YData', G.trajectory2D(pidx).x_c_d(2,1:WBidx));   
@@ -244,9 +279,8 @@ classdef Graphics < handle
                 
                 % Update actual configuration 
                 for k=1:len_phase
-                    b = toc(a);        
-                    tk = G.trajectory2D(pidx).t(k);
-                    if b > 0.01
+                    b = toc(a);                            
+                    if b > 0.005
                         Ck = [G.trajectory2D(pidx).x_c(:,k); G.trajectory2D(pidx).q(:,k)];
                         bodyWorld = G.model.getPosition(Ck, 1, G.Gmodel2D.bodyLocal);
                         FhipWorld =  G.model.getPosition(Ck, 2, G.Gmodel2D.hipLocal);
@@ -266,8 +300,9 @@ classdef Graphics < handle
                             qv.UData = F_ext(1,k);
                             qv.VData = F_ext(2,k);
                         end                        
-                        
-                        th.String = sprintf('t = %0.3f s', tk);
+                        if ~isempty(G.trajectory2D(1).t)
+                            th.String = sprintf('t = %0.3f s', G.trajectory2D(pidx).t(k));
+                        end                        
                         drawnow limitrate nocallbacks;
                         
                         frame{im_idx} = getframe(f);
